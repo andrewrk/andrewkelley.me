@@ -6,7 +6,7 @@
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "git://github.com/superjoe30/andrewkelley.me.git"
   },
   "dependencies": {
     "rss": "0.0.4",
