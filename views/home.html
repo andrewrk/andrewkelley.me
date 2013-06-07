@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Posts</h2>
+<ul class="unstyled">
+  {% for post in posts %}
+  <li><a href="/post/{{ post.filename }}">{{ post.title }}</a> - {{ post.date | date("Y M d") }}</li>
+  {% endfor %}
+</ul>
+<h2>Projects</h2>
+<ul class="unstyled">
+  <li>
+  <a href="https://github.com/superjoe30/groovebasin">Groove Basin</a> -
+  Web-based music player built on mpd and Node.js, with a user interface inspired by Amarok 1.4.
+  </li>
+  <li>
+  <a href="https://github.com/superjoe30/naught">naught</a> -
+  zero downtime deployment for your Node.js server using native cluster api
+  </li>
+  <li>
+  <a href="http://www.pyweek.org/e/tboxthonton/">Dr. Chemical's Lab</a> - PyWeek #14 entry - arcade/simulation/multiplayer.
+  </li>
+  <li>
+  <a href="https://github.com/superjoe30/chem">chem</a> - Canvas-based game engine optimized for rapid development.
+  </li>
+  <li>
+  <a href="https://github.com/superjoe30/mineflayer/">mineflayer</a> - Create Minecraft bots with a powerful, stable, and high level JavaScript API.
+  </li>
+  <li>
+  <a href="http://pyweek.org/e/superjoe/">Lemming</a> - PyWeek #12 winning entry - side scrolling platformer.
+  </li>
+  <li>
+  <a href="http://truthfinder.org">truthfinder.org</a> - <span class="label label-info">private beta</span>
+  A platform where all sides of any debate can be
+  fully fleshed out in an organized manner, so that any person seeking the truth can get an objective view.
+  </li>
+  <li>
+  <a href="https://github.com/superjoe30/waveform">waveform</a> -
+  Fast C program to generate the waveform image of an audio file. Also available as a Node.js module.
+  </li>
+  <li>
+  <a href="http://stinkomanlevels.com/">stinkomanlevels.com</a> -
+  Upload, play, and rate custom
+  <a href="http://www.homestarrunner.com/stinkogame/v7/stinkogame.html">Stinkoman: 20X6</a> levels.
+  </li>
+</ul>
+{% endblock %}

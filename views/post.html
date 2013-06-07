@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }} - {% parent %}{% endblock %}
+
+{% block head %}
+<script src="https://s3.amazonaws.com/superjoe/blog-files/prism.js"></script>
+{% endblock %}
+
+{% block content %}
+{% autoescape off %}
+{{ post.content }}
+{% endautoescape %}
+{% endblock %}

@@ -1,0 +1,84 @@
+#!/usr/bin/env node
+
+var path = require('path')
+  , fs = require('fs')
+  , swig = require('swig')
+  , RSS = require('rss')
+  , mkdirp = require('mkdirp')
+
+var VIEWS_DIR = "views";
+var BUILD_DIR = "www";
+
+mkdirp.sync(BUILD_DIR);
+
+swig.init({
+  root: VIEWS_DIR,
+  allowErrors: true,
+  cache: false,
+});
+
+var postList = [
+  {
+    filename: "jamulator.html",
+    content: null, // on init fill this with content from filename
+    date: new Date("2013-06-07T08:48:00.721Z"),
+    title: "Statically Recompiling NES Games into Native Executables with LLVM and Go",
+  },
+  {
+    filename: "swig-email-templates.html",
+    content: null, // on init fill this with content from filename
+    date: new Date("2013-01-30T12:00:00.000Z"),
+    title: "Rapid Development Email Templates with Node.js",
+  },
+  {
+    filename: "pyweek-success.html",
+    content: null, // on init fill this with content from filename
+    date: new Date("2011-08-07T12:00:00.000Z"),
+    title: "How to be Successful at PyWeek",
+  },
+  {
+    filename: "jmt.html",
+    content: null, // on init fill this with content from filename
+    date: new Date("2011-08-04T12:00:00.000Z"),
+    title: "John Muir Trail from the Perspective of Andrew Kelley",
+  },
+];
+readPostContentAndGenerateRss();
+
+render("index.html", "home", {posts: postList});
+postList.forEach(function(post) {
+  render(path.join("post", post.filename), "post", {post: post});
+});
+
+function render(file, viewName, context) {
+  var template = swig.compileFile(viewName + ".html");
+  var html = template.render(context);
+  var fullPath = path.join(BUILD_DIR, file);
+  mkdirp.sync(path.dirname(fullPath));
+  fs.writeFileSync(fullPath, html);
+}
+
+
+function readPostContentAndGenerateRss() {
+  // cache the file content for each post in memory
+  // also create a list of posts ordered by date
+  // also create the RSS feed
+  var feed = new RSS({
+    title: "Andrew Kelley",
+    description: "My personal website - thoughts, project demos, research.",
+    feed_url: "http://andrewkelley.me/rss.xml",
+    site_url: "http://andrewkelley.me/",
+    image_url: "https://s3.amazonaws.com/superjoe/blog-files/profile-48x58.jpg",
+    author: "Andrew Kelley",
+  });
+  postList.forEach(function(post) {
+    post.content = fs.readFileSync(path.join("posts", post.filename), {encoding: 'utf8'});
+    feed.item({
+      title: post.title,
+      description: post.content,
+      url: "http://andrewkelley.me/post/" + post.filename,
+      date: post.date,
+    });
+  });
+  fs.writeFileSync(path.join(BUILD_DIR, "rss.xml"), feed.xml());
+}

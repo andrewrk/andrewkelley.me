@@ -1,0 +1,315 @@
+<h1>Rapid Development Email Templates with Node.js</h1>
+<h2>Contents</h2>
+<ol>
+  <li><a href="#automated-emails-nodejs">Sending Automated Emails in Node.js</a></li>
+  <li><a href="#nodeemailtemplates_gotchas">node-email-templates Gotchas</a>
+  <li><a href="#fundamental_flaws">Fundamental Flaws</a>
+    <ol>
+      <li><a href="#includes_vs_template_inheritance">Includes VS Template Inheritance</a></li>
+      <li><a href="#sharing_css">Sharing CSS</a></li>
+      <li><a href="#dummy_context">Dummy Context</a></li>
+    </ol>
+  </li>
+  <li><a href="#conclusion">Conclusion</a></li>
+</ol>
+<h2 id="automated-emails-nodejs">Sending Automated Emails in Node.js</h2>
+<p>When I was tasked with solving the age-old problem of sending automatic
+email messages to our users at
+<a href="http://indabamusic.com/">Indaba Music</a>, I surveyed the
+<a href="http://nodejs.org/">Node.js</a> landscape to find out the state of affairs.
+</p>
+<p>I was pleased to immediately discover
+<a href="https://github.com/niftylettuce/node-email-templates/">node-email-templates</a> and
+<a href="https://github.com/andris9/Nodemailer">Nodemailer</a>, and within two days had a
+proof of concept email notification server deployed to production.
+</p>
+<p><strong>node-email-templates</strong> helps organize your project and make it
+easy to render templates for sending via email by using
+<a href="https://github.com/LearnBoost/juice">juice</a> to
+<a href="http://www.campaignmonitor.com/css/">inline css</a>.
+</p>
+
+<p><strong>Nodemailer</strong> does the actual email dispatching -
+given an email dispatch service, a subject, to, and body,
+Nodemailer will get your mail to its destination.</p>
+
+<p>Nodemailer is a wonderful piece of software. It worked, and continues to work,
+exactly as advertised and without any hiccups. It even has a convenient API that
+makes integration with common email dispatchers, such as
+<a href="http://sendgrid.com">SendGrid</a> (which I also recommend), quite painless.</p>
+
+<p>Unfortunately this journey was not without a few obstacles that node-email-templates
+provided for me to solve.</p>
+
+<p>What follows is an explanation of the bumps along the road that caused me to write
+these modules to improve the state of email templates in node.js:</p>
+
+<ul>
+<li><a href="https://github.com/superjoe30/boost">boost</a></li>
+
+<li><a href="https://github.com/superjoe30/swig-dummy-context">swig-dummy-context</a></li>
+
+<li><a href="https://github.com/superjoe30/swig-email-templates">swig-email-templates</a></li>
+</ul>
+
+<p>More on these in a bit.</p>
+
+<h2 id="nodeemailtemplates_gotchas">node-email-templates Gotchas</h2>
+
+<p>Assume that I have 2 templates named <code>reminder</code> and <code>notice</code>.</p>
+<p><strong>node-email-templates</strong> requires your project to have a folder structure that looks like this:</p>
+
+<pre>./templates/reminder/html.ejs
+./templates/reminder/text.ejs
+./templates/reminder/style.css
+./templates/notice/html.ejs
+./templates/notice/text.ejs
+./templates/notice/style.css
+</pre>
+<p>There are several problems here. There are some module smells:</p>
+
+<ul>
+  <li>
+  Regardless of whether or not you need text version of a template, you must have the
+  <code>text.ejs</code> file there or node-email-templates will throw an error.
+  </li>
+  <li>
+  This project is poorly maintained. As of this writing,
+  <a href="https://github.com/daeq">daeq</a> submitted a
+  <a href="https://github.com/niftylettuce/node-email-templates/pull/17">pull request</a>
+  to fix the above problem 3 months ago, and despite a promise to merge it,
+  <a href="https://github.com/niftylettuce/">niftylettuce</a> still has not done so.
+  </li>
+</ul>
+
+<p>But there are also some fundamental problems with the approach that the module takes.</p>
+
+<h2 id="fundamental_flaws">Fundamental Flaws</h2>
+
+<ul>
+  <li>
+  This flavor of ejs is limited. You can do includes, but not layouts or
+  <a href="https://docs.djangoproject.com/en/dev/topics/templates/#template-inheritance">template inheritance</a>,
+  which is where the true value of using templates comes in.
+  </li>
+  <li>
+  The html templates have <em>no way</em> of sharing css between them.
+  </li>
+  <li>
+  Because ejs depends on using <code>eval</code>, it is impossible to,
+  given a template, create a dummy context with which to generate a preview
+  of the template. More on this later.
+  </li>
+</ul>
+
+<h3 id="includes_vs_template_inheritance">Includes VS Template Inheritance</h3>
+
+<p>To demonstrate the template inheritance problem, let me give you 2 versions
+of a template, one using ejs with includes, and one using
+<a href="https://github.com/paularmstrong/swig/">swig</a> with template inheritance:</p>
+
+<h4 id="ejs_includes">ejs includes</h4>
+
+<h5 id="noticeejs">notice.ejs</h5>
+<pre>
+<code class="language-markup">&lt;% include header %&gt;
+&lt;div&gt;
+  &lt;p&gt;Hey &lt;%= username %&gt;,&lt;/p&gt;
+  &lt;p&gt;This is a notice that your offer is about to expire.&lt;/p&gt;
+&lt;/div&gt;
+&lt;% include footer %&gt;</code>
+</pre>
+<h5 id="reminderejs">reminder.ejs</h5>
+<pre>
+<code class="language-markup">&lt;% include header %&gt;
+&lt;div&gt;
+  &lt;p&gt;Hey &lt;%= username %&gt;,&lt;/p&gt;
+  &lt;p&gt;Don't forget! You probably wanted to do that thing.&lt;/p&gt;
+&lt;/div&gt;
+&lt;% include footer %&gt;</code>
+</pre>
+<h5 id="headerejs">header.ejs</h5>
+<pre>
+<code class="language-markup">&lt;div&gt;
+  &lt;img src="logo.png"&gt;
+&lt;/div&gt;</code>
+</pre>
+<h5 id="footerejs">footer.ejs</h5>
+<pre>
+<code class="language-markup">&lt;div&gt;
+  Super Cool &amp;amp; Co., LLC.
+  &lt;a&gt;Privacy Policy&lt;/a&gt;
+&lt;/div&gt;</code>
+</pre>
+<h4 id="swig_template_inheritance">swig template inheritance</h4>
+
+<h5 id="reminderhtml">reminder.html</h5>
+<pre>
+<code class="language-markup">{% extends "base.html" %}
+
+{% block content %}
+  &lt;p&gt;Don't forget! You probably wanted to do that thing.&lt;/p&gt;
+{% endblock %}</code>
+</pre>
+<h5 id="noticehtml">notice.html</h5>
+<pre>
+<code class="language-markup">{% extends "base.html" %}
+
+{% block content %}
+  &lt;p&gt;This is a notice that your offer is about to expire.&lt;/p&gt;
+{% endblock %}</code>
+</pre>
+<h5 id="basehtml">base.html</h5>
+<pre>
+<code class="language-markup">&lt;div&gt;
+  &lt;img src="logo.png"&gt;
+&lt;/div&gt;
+&lt;div&gt;
+  &lt;p&gt;Hey {{ username }},&lt;/p&gt;
+  {% block content %}
+  {% endblock %}
+&lt;/div&gt;
+&lt;div&gt;
+  Super Cool &amp;amp; Co., LLC.
+  &lt;a&gt;Privacy Policy&lt;/a&gt;
+&lt;/div&gt;</code>
+</pre>
+<h4 id="template_inheritance_wins">Template Inheritance Wins</h4>
+
+<p>This is an oversimplified example, but even so it starts to become
+obvious why template inheritance is superior to includes.</p>
+
+<p>You can also have includes in swig, by the way.</p>
+
+<h3 id="sharing_css">Sharing CSS</h3>
+
+<p><strong>node-email-templates</strong> uses
+<a href="https://github.com/LearnBoost/juice">juice</a> to inline css.
+Give juice html and css, and it returns html with the css inlined on each element for
+<a href="http://www.campaignmonitor.com/css/">maximum email client compatibility</a>.</p>
+
+<p>This setup seems good at first, but it is crippled by the fact that templates
+are completely unable to share css.
+Each template has its own independent <code>style.css</code> file.</p>
+
+<p>It is not <strong>node-email-templates</strong>'s fault.
+Given the way that juice works, it isn't really possible to share css.</p>
+
+<p>This is where
+<a href="https://github.com/superjoe30/boost">boost</a> comes in.
+<strong>boost</strong> depends on juice and adds 2 key features that make sharing CSS possible.</p>
+
+<ul>
+  <li>Ability for the html to have
+  <code class="language-markup">&lt;link rel=&quot;stylesheet&quot;&gt;</code>
+  tags which are resolved correctly and have the resulting CSS applied.
+  </li>
+  <li>Ability to have
+  <code class="language-markup">&lt;style&gt;...&lt;/style&gt;</code>
+  elements and have that CSS applied as well.
+  </li>
+</ul>
+
+<p>When you add this capability with template inheritance, sharing CSS becomes a solved problem.
+For example:</p>
+
+<h4 id="basehtml">base.html</h4>
+<pre>
+<code class="language-markup">&lt;html&gt;
+&lt;head&gt;
+  {% block css %}
+    &lt;link rel="stylesheet" href="base.css"&gt;
+  {% endblock %}
+&lt;/head&gt;
+&lt;body&gt;
+  {% block content %}
+  {% endblock %}
+&lt;/body&gt;
+&lt;/html&gt;</code>
+</pre>
+<h4 id="reminderhtml">reminder.html</h4>
+<pre>
+<code class="language-markup">{% extends "base.html" %}
+
+{% block css %}
+  {% parent %}
+  &lt;link rel="stylesheet" href="reminder.css"&gt;
+{% endblock %}
+
+{% block content %}
+  &lt;h1&gt;Reminder&lt;/h1&gt;
+  &lt;p&gt;Don't forget!&lt;/p&gt;
+{% endblock %}</code>
+</pre>
+<h4 id="noticehtml">notice.html</h4>
+<pre>
+<code class="language-markup">{% extends "base.html" %}
+
+{% block css %}
+  {% parent %}
+  &lt;link rel="stylesheet" href="notice.css"&gt;
+{% endblock %}
+
+{% block content %}
+  &lt;h1&gt;Notice&lt;/h1&gt;
+  &lt;p&gt;This is a notice.&lt;/p&gt;
+{% endblock %}</code>
+</pre>
+<h3 id="dummy_context">Dummy Context</h3>
+
+<p>In order to rapidly build email templates, we need to see what we are building as we build it.</p>
+
+<p>Because you need to supply a template with a context in order to render it and see it,
+this makes seeing what you are doing while you build templates a two step process.</p>
+
+<p>We can remove this extra step by taking advantage of
+<a href="https://github.com/superjoe30/swig-dummy-context">swig-dummy-context</a>,
+a module I wrote which, given a swig template, gives you a "dummy" context -
+a fill-in-the-blank structure you can use to immediately preview your template.</p>
+
+<p>Given:</p>
+<pre>
+<code class="language-markup">&lt;div&gt;
+  {{ description }}
+&lt;/div&gt;
+{% if articles %}
+  &lt;ul&gt;
+  {% for article in articles %}
+    &lt;li&gt;{{ article.name }}&lt;/li&gt;
+  {% endfor %}
+  &lt;/ul&gt;
+{% else %}
+  &lt;p&gt;{{ defaultText }}&lt;/p&gt;
+{% endif %}</code>
+</pre>
+<p>swig-dummy-context produces:</p>
+<pre>
+<code class="language-javascript">{
+  "description": "description",
+  "articles": {
+    "name": "name"
+  },
+  "defaultText": "defaultText"
+}</code>
+</pre>
+<p>And if you render the template with the generated dummy context, you get:</p>
+<pre>
+<code class="language-markup">&lt;div&gt;
+  description
+&lt;/div&gt;
+&lt;ul&gt;
+  &lt;li&gt;name&lt;/li&gt;
+&lt;/ul&gt;</code>
+</pre>
+<h2 id="conclusion">Conclusion</h2>
+
+<p><a href="https://github.com/superjoe30/swig-email-templates">swig-email-templates</a>
+gives you all the ingredients you need to build well-organized templates and gives you the
+tooling that you need to build a live preview tool.</p>
+
+<p>At Indaba Music we have such a tool. It lets you select a template from the templates folder
+and fill in the substitutions to preview how an email will look. To be extra sure of how an email
+will render, you can use the tool to send a test email to your email address.</p>
+
+<p>This tool is currently private as it is not decoupled from SendGrid or even polished up
+for 3rd party use at all; however if there is sufficient interest I may open source it.</p>

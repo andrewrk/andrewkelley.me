@@ -1,0 +1,214 @@
+<h1>How to be Successful at PyWeek</h1>
+<p>A short series to help you win. Covers these topics:</p>
+<ol>
+<li><a href="#intro">What PyWeek is, and Why You Should Participate</a></li>
+<li><a href="#python">Video Games in Python</a></li>
+<li><a href="#speed">Speed Developing</a></li>
+<li><a href="#game">Game Theory - How to Create Fun</a></li>
+<li><a href="#community">Getting the Most Out of the Community</a></li>
+<li><a href="#judging">The Psychology of Judging</a></li>
+<li><a href="#conclusion">Conclusion</a></li>
+</ol>
+<h2 id="intro">What PyWeek is, and Why You Should Participate</h2>
+<p><a href="http://pyweek.org/">PyWeek</a> is a challenge. It asks you to spend one week of your life developing a new video game, using <a href="http://python.org/">Python</a>.</p>
+
+<p>PyWeek is difficult. It is not easy to create a new video game in just one week, especially one that is fun, innovative, and polished. But it <em>is</em> fun to try, especially with peers from all around the world working alongside you toward the same goal.</p>
+
+<p>PyWeek will strengthen you as a game developer. If you go solo it will strengthen you as a generalist, and if you join a team it will strengthen you as a team member.</p>
+
+<p>As of this writing, the <a href="http://www.pyweek.org/13/">next competition</a> is the week of <strong>September 11, 2011</strong> to <strong>September 18, 2011</strong>. Registration opens August 12, 2011.</p>
+
+<p>You can check out the competition's <a href="http://pyweek.org/s/rules/">Rules</a> and <a href="http://pyweek.org/s/help/">FAQ</a>.
+</p>
+<h2 id="python">Video Games in Python</h2>
+<p>Python is a great language for rapid video game development:</p>
+<ul>
+<li>Large selection of libraries to use, for example <a href="http://pygame.org/">PyGame</a> and <a href="http://www.pyglet.org/">Pyglet</a></li>
+<li>Python is known for being a prototyping language due to its ease of use.</li>
+<li>It is simple to create arbitrary one-off data structures that you often need in game programming.</li>
+<li>You can use objects and inheritance if you need it.</li>
+<li>Cross platform</li>
+</ul>
+<p>There are some drawbacks though:</p>
+<ul>
+<li>Deployment is cumbersome. For PyWeek this isn't too much of an issue since everyone will run from source, but for an official game, it would be an issue.</li>
+<li>Code is about 10x less efficient than in C or C++. This will not matter for graphics on screen, since you will likely use a game library which uses the GPU for graphics, but it might make your main loop or physics slow.</li>
+</ul>
+<p>Just keep these things in mind when developing.</p>
+<h2 id="speed">Speed Developing</h2>
+<p>The biggest thing preventing you from success during PyWeek is lack of time. Therefore, the more time you conserve, and the more time-consuming things you can do <em>before</em> the development week, the better chances you have for success.</p>
+<h3>Allocate as much time as possible.</h3>
+<p><a href="http://pyweek.org/">PyWeek</a> is inspired by the <a href="http://www.ludumdare.com/compo/">Ludum Dare</a> competition<a href="http://pyweek.org/s/help/#what-s-pyweek-all-about">[1]</a>, which only lasts 48 hours. In that competition, you pretty much have to use all 48 hours if you want to be successful. PyWeek is one week long to make it easier on people who have commitments to things other than the Internet. Regardless, <b>your success will be directly proportional to the amount of time you spend</b> on PyWeek.</p>
+<ul>
+<li>Get ahead at work and/or school so that you can spend as little time on them as possible.</li>
+<li>Make sure your significant other knows you don't want to be bothered this particular week. You'll make up for it later.</li>
+<li>Remember not to agree to go to any social activities that will take place during PyWeek. If someone asks you to hang out, try to change the time to before or after.</li>
+</ul>
+<h3>Use version control.</h3>
+<p>You may be tempted to forgo version control, in the interest of time. One of two things are true. Either, </p>
+<ol>
+<li>You are new to version control, and you honestly would spend more time struggling with the version control software than developing your game, or </li>
+<li>You are comfortable with version control, but think that you can save time by not using it since this is a speed-developing contest.</li>
+</ol>
+<p>In the first case, you should use version control anyways, because that skill should take priority over game development, and this is a great opportunity to learn. <a href="https://github.com/">GitHub</a> makes it dead simple if you are okay with making your project open source.</p>
+<p>In the second case, let me assure you that version control will actually save you time:</p>
+<ul>
+<li>When you're tired and you forgot what you were working on, you can use the diff tool to quickly remember what you were working on.</li>
+<li>You can spend a few minutes working on a feature or experimenting with a different style of gameplay to see if it's fun. If not, it's one command to scrap it and try again.</li>
+<li>If you're used to using version control and you forgo it for the competition, it will throw off your groove to not use it, messing with your psychology in a time-wasting manner.</li>
+</ul>
+<h3>Practice beforehand.</h3>
+<p>Development is all about solving problems.</p>
+<p>There are some problems you are bound to run into that are simply a function of Python, the game library you are relying on, and the fact that you are writing a game. You would run into these problems no matter what game you decided to write.</p>
+<p>Therefore, it makes sense to solve these problems before the actual competition. Practice writing a simple game engine with the library of your choice before the competition. You will run into and solve some issues that you would have otherwise had to waste time solving during the competition.</p>
+<p>Examples of things you may want to practice:</p>
+<ul>
+<li>Basic game engine / main loop</li>
+<li>Displaying graphics</li>
+<li>Animating things on the screen</li>
+<li>Responding to user input</li>
+<li>Sound playback</li>
+<li>Transitioning state between a title screen or menu system and gameplay.</li>
+<li>3D graphics</li>
+<li>Networking</li>
+<li>Deploying on Windows, Mac, and Linux</li>
+</ul>
+<p>Practice using the tools you are going to use as well. Before the competition starts, you should feel comfortable creating assets, such as:</p>
+<ul>
+<li>Art</li>
+<li>Animations</li>
+<li>Sound effects</li>
+<li>Music</li>
+</ul>
+<p>Often you can make at least half of your sound effects using only a microphone, <a href="http://audacity.sourceforge.net/">Audacity</a>, and some creativity.</p>
+<p>PyWeek allows you to use artwork, music, and sounds whose copyrights explicitly allow you to use them. If you are going to use other people's artwork, find the databases and websites where you are going to get it from and make sure the citation process is efficient and will work.</p>
+<h3>Have your game idea ready before the theme is decided.</h3>
+<p>
+You have one week between finding out what the 5 possible themes are, and the start of development. Use this week to <strong>brainstorm several game ideas for each theme</strong>, before you even know which one will win.
+</p>
+<p>Brainstorming is a lengthy process. Sometimes it can help to give yourself fake limitations in order to get your brain to think of ideas. For each possible theme, try to think of a game that fits each category:</p>
+<ul>
+<li>Action</li>
+<li>Adventure</li>
+<li>Puzzle</li>
+<li>Role-Playing</li>
+<li>Simulation</li>
+<li>Other - a crazy wacky idea that probably will be stupid</li>
+</ul>
+<p>Sometimes trying to think of an idea for one category will make you think of an idea for another category. That's great, write it down! And sometimes trying to think of an idea for one theme will make you think of an idea for a different theme. That's great, write it down! At this point you want as many ideas as possible.</p>
+
+<p>A friend or room mate can be very useful when brainstorming ideas. Bouncing ideas off each other is a great way to come up with material.</p>
+
+<p>Once the theme is decided, you can often pick your best idea, regardless of what theme you thought of it for, and adapt it to fit the real theme. My winning entry, <a href="http://www.pyweek.org/e/superjoe/">Lemming</a>, was originally an idea inspired by the "Fry Cook on Venus" theme, but I adapted it to the "Nine Times" theme when it was chosen. <a href="https://github.com/superjoe30/lemming/blob/master/ideas/theme-brainstorming">[2]</a></p>
+
+<h3>Rely on other projects as much as possible.</h3>
+<p>As a general rule, do not try to write a level editor during PyWeek. You need as much time as possible to spend on the game itself. Consider using <a href="http://www.mapeditor.org/">Tiled</a> and <a href="https://code.google.com/p/pytmxloader/">DR0ID's tiledtmxloader.</a></p>
+<h3>Get enough sleep.</h3>
+<p>Your body needs sleep. You cannot cheat around that fact. The longer you sleep-deprive yourself, the less clearly you will think, the more mistakes you will make, and the more slowly you will work.</p>
+<p>When you rest, you give your unconscious mind a chance to sort things out and surface solutions and ideas that you wouldn't have thought of consciously.</p>
+<p>Sleep is directly linked to creativity.<a href="http://en.wikipedia.org/wiki/Sleep_and_creativity">[3]</a></p>
+<h2 id="game">Game Theory - How to Create Fun</h2>
+<p>It is easy to start programming and create a simple platformer, without thinking about what makes platformers fun. It is easy, but not nearly as rewarding as it is to actually think about <a href="http://en.wikipedia.org/wiki/Game_theory">Game Theory</a> - a fascinating subject that philosophers have been thinking about for a very long time.</p>
+<h3>Think about game theory.</h3>
+<p>If you have never read that Wikipedia page, do. Be sure to check out the simple example, <a href="http://en.wikipedia.org/wiki/Prisoner's_dilemma">Prisoner's Dilemna</a>, and especially the <a href="http://en.wikipedia.org/wiki/Prisoner%27s_dilemma#See_also">See Also</a> section of that page for other great examples.
+</p>
+<p>In short, you should be constantly asking yourself these questions while designing your game:</p>
+<ul>
+<li>What do I want the player to try to do?</li>
+<li>What is the player actually motivated to try to do?</li>
+<li>Is what I want the player to try to do the same as what the player is actually motivated to try to do? Why or why not, exactly? What elements naturally drive the player to act in a certain way?</li>
+<li>Is what I want the player to try to do fun? What exactly makes it so, or not so?</li>
+<li>Are the player's short term goals conflicting with the player's long term goals? (This is one way to create good gameplay.)</li>
+<li>What compels the player to keep playing?</li>
+<li>Is the player compelled to keep playing compulsively, or because they are having fun?</li>
+<li>Do I want the experience of playing to be the same every time, or have random elements that change up the gameplay?</li>
+<li>Are there any parts of the gameplay that are definitely <em>not</em> fun?</li>
+<li>Is it possible to make it fun to lose?</li>
+<li>What forces is the player working against?</li>
+<li>Does the player feel like the forces working against him are acting fairly?</li>
+</ul>
+<p>There is a plethora of reading (and watching) material on creating interesting gameplay. Here are some materials to get you started thinking about game design:</p>
+<ul>
+<li><a href="http://penny-arcade.com/patv/episode/the-skinner-box">Extra Credits: The Skinner Box</a></li>
+<li><a href="http://penny-arcade.com/patv/episode/narrative-mechanics">Extra Credits: Narrative Mechanics</a></li>
+</ul>
+<h3>Get your game into a playable state as soon as possible.</h3>
+<p>Developing a game is an evolutionary process. The sooner you have a playable game, the sooner you can begin to morph it and mold it into a better and better game.</p>
+<p>Ask yourself if it is fun. Try to figure out what makes it fun, and expand on those elements of gameplay.</p>
+<p>Try out your gameplay on friends and see what they do. Try to not talk to them while they are playing. Figure out what parts your friends get frustrated at and change those parts.</p>
+<h3>Sketch your levels on paper before coding anything.</h3>
+<p>This will give you an idea of the world you're trying to create, giving you focus and direction when you code.</p>
+<h2 id="community">Getting the Most Out of the Community</h2>
+<p>PyWeek is only as fun as the people who participate. After all, there are no prizes, no reason to compete, other than for personal development and community interaction.</p>
+<p>You get what you give.</p>
+<h3>Keep a journal.</h3>
+<p>One great way to participate is to <strong>write a diary entry after each day of work</strong>. Write about:</p>
+<ul>
+<li>Any progress made</li>
+<li>Things that are impeding progress</li>
+<li>Lessons learned that you want to remember for next time</li>
+<li>Teaser screenshots, art, videos, sounds, or music</li>
+<li>Decisions that you are pondering about in your game design</li>
+</ul>
+<p>It is fun for others to follow along with your progress and for you to follow along with others. It is customary to be positive, uplifting, and encouraging in response to diary entries, but don't be afraid to tactfully include constructive criticism. On the flip side, be ready to accept critique, using it to improve your design.</p>
+<h3>Join the IRC channel.</h3>
+<p>You can feel the camaraderie by hanging out in #pyweek on Freenode.</p>
+<p>Live chat is personal and you can get to know the other participants fairly well. This place is especially fun during judging time. At one point we broke out into a <a href="http://www.pyweek.org/d/3946/">spontaneous one-hour game development competition.</a> There is almost always someone ready to give instant feedback about a game design decision or to give tips on development in general.</p>
+<p>One thing you want to be careful of, however, is spending too much time distracted by IRC during development time. You should be spending almost all your development time developing.</p>
+<h3>Follow along with the forum discussion.</h3>
+The <a href="http://www.pyweek.org/messages/">forum</a> is the main communication facility of PyWeek. While it may take longer for someone to respond than on IRC, this is a great place to get questions answered and to participate in general in the community.<p></p>
+<p>Diary entries are posted to the forum so that everyone sees them and can comment on them.</p>
+<h3>Play and judge as many games as you can.</h3>
+<p>As developers, we thrive on feedback. When it is time to judge, give as much valuable and honest feedback as you can to as many games as you can stand.</p>
+<p>Giving a silly award can be a fun way to give praise to a weird aspect of a game.</p>
+<h2 id="judging">The Psychology of Judging</h2>
+<p>Realize that in the end you are creating a demo. Your project is not going to be a polished, ready-to-ship game in one week. Your goal is to <strong>make sure judges play your entire game experience and do not get distracted by nuances</strong>.</p>
+<h3>Test your game on several people.</h3>
+<p>Find a few friends who have not been following along with your development and shove the game in front of their face. Set them up with the title screen, but say nothing else.</p>
+
+<p>Watch their face, watch their hands, and watch the screen. You are now getting an accurate preview of how judges will react to your game. Pay attention to what parts of your gameplay they don't understand. Notice when they ignore instructions you didn't want them to. Take note of what parts they get stuck at. All of these things are what you need to work on. If you don't, this is everything that judges will talk about in your game's feedback.</p>
+
+<p>One mistake I made was testing my game on someone who is exceptionally good at video games. He didn't have too much of a problem with the levels that the real judges simply got stuck at and gave up.</p>
+
+<p>Remember that judges have hundreds of games to play. If at any time during your game they get stuck, they are likely to shrug and move on to a different game.</p>
+
+<h3>The first few minutes of your game should be ridiculously easy.</h3>
+<p>It is critical that you <em>gradually</em> ramp up the difficulty, starting off stupidly easy.</p>
+<p>Nobody likes a game that treats the player like an idiot. However, a player is far more willing to tolerate a Level 1 that they can pass without thinking, than they are to try to disassemble a masterpiece puzzle at the very beginning. Judges are much more likely to give up and move on.</p>
+<p>As long as each new section, or level, is at least a <em>little tiny bit</em> more challenging than the last, the player will be intrigued and want to keep playing.</p>
+<p>There is a time and a place for ridiculously hard challenging bonus levels, and that time and place is after the player has beaten the normal game, as a reward for their success. The test level that you use for 90% of your debugging will soon become boring and easy to you, but ridiculously hard for a new player. It has no place in the normal game; it should be in bonus-land.</p>
+<p>Make stupidly easy levels come first, and then <strong>slowly introduce your more complex gameplay elements as the player progresses and gains confidence.</strong></p>
+
+<p>Again, realize that your PyWeek game is essentially a demo. You might want to include a level select on the title screen, so that a frustrated judge can skip levels that were hard in ways that you did not expect. The easier you make it for fellow PyWeekers to experience the fullness of your creation, the better feedback you will get.</p>
+<h3>Post a walkthrough with your final submission.</h3>
+<p>Once again, the goal here is to get each judge to experience all of your content, <em>not</em> to stump them with your enigmatic gameplay.</p>
+<p>Post a clear and detailed walkthrough that explains how to get through and beat each level.</p>
+<h3>Reading instructions is boring.</h3>
+<p>No matter how complex your gameplay is, there is no excuse for making your players read a wall of text.</p>
+<p>There should be no instructions necessary. The player should be able to learn the gameplay by immediately beginning to play, and then being gradually given small bits of learning to digest. Tutorial levels are highly encouraged.</p>
+<p>Remember that one of the categories you are being rated on is Fun<a href="http://pyweek.org/s/rules/#entries-are-judged-by-peers">[4]</a>, and reading instructions is not fun.</p>
+
+<h3>Remember that not everyone has your setup.</h3>
+<h4>Some people use alternate keyboard layouts.</h4>
+<p>In PyWeek 12, 11% of participants used a keyboard other than QWERTY.<a href="https://spreadsheets.google.com/viewanalytics?hl=en_GB&formkey=dEIxVS1SRTdYTHZKbWJiTjdSS3FUYWc6MA">[5]</a></p>
+<p>Be polite to alternate keyboard users. Defaulting to WASD is acceptable, but the player should be able to remap the keys.</p>
+<p>A config file is an acceptable method for remapping keys, as long as it is obvious how to do it without a lot of instruction-reading.</p>
+<p>However, alternate keyboard users are often proactive, and willing to put forth a bit of extra effort to compensate for their questionable life choices*. If you are running low on development time, it would be better to focus on gameplay rather than being nice to alternate keyboard users.</p><p><small>*Note: I am a Dvorak user.</small></p>
+<h4>Most operating systems are case sensitive.</h4>
+<p>Time to pick on Windows users.</p>
+<p>It is <strong>unacceptable</strong> to rely on your file system's case insensitivity in your code. It is a huge pain to rename all media files in someone else's project and then grep through their code to find the filenames in the effort to get the program to not crash.</p>
+<p>Make sure you <strong>use the same case in your filenames as you do in your code</strong>.</p>
+<h4>Everyone's screen situation is different.</h4>
+<p>The simplest thing to do is use a fixed sized windowed application - that way you don't have to take into account different screen resolutions and ratios.</p>
+<p>Some people consider it rude for games to go fullscreen without explicit instruction.</p>
+<h4>Do not make a tarbomb.</h4><p>When you create a tar file, everything should be inside of a single folder with your game name and version number.</p>
+<h3>Test your final submission.</h3>
+<p>Once you upload your final submission to the website, immediately download it again into a new folder and try to play it. This ensures that you didn't make any stupid mistakes.</p>
+<p>Test on Windows, Mac, and Linux. Get a friend to test it for you if you don't have direct access to any of these OS's. Linux is free, so there is no excuse for not testing it on <a href="http://www.ubuntu.com/">Ubuntu</a>.</p>
+<p>You would be amazed at how many people forget to include their media folder, or make some trivial mistake that renders their entire game unplayable.</p>
+
+
+<h2 id="conclusion">Conclusion</h2>
+<p>
+I wrote this article selfishly. I feel compelled to play every contestant's game, and I want the games that I play to be fun. Hopefully this article is helpful enough to raise the standard of PyWeek.
+</p>
