@@ -153,7 +153,7 @@ $ gcc test.c
 test.c: In function ‘main’:
 test.c:7:5: error: ‘for’ loop initial declarations are only allowed in C99 mode
 test.c:7:5: note: use option -std=c99 or -std=gnu99 to compile your code
-$ 
+$
 </pre>
 <p>
 Right, so default gcc doesn't have the nice things that <a href="http://en.wikipedia.org/wiki/C99">C99</a> brings.
@@ -162,7 +162,7 @@ Let's try that again with <code>gcc -std=c99</code>:
 <pre>
 $ c99 test.c
 $ ./a.out
-$ 
+$
 </pre>
 <p>
 Okay, so now it compiled and ran, but why didn't it print the integers from 1 to 10? Let's try compiling with <code>clang</code> and see what happens:
@@ -184,7 +184,7 @@ test.c:6:13: note: place parentheses around the &amp; expression to evaluate it
             ^
         (         )
 1 warning generated.
-$ 
+$
 </pre>
 <p>
 Aha! In C, <code>&amp;</code> has lower precedence than <code>==</code>. In addition to
@@ -1104,7 +1104,7 @@ go build -o jamulate main.go
 And, sure enough, when we run this code, we get a nice breakdown of the source:
 </p>
 <pre>
-$ ./jamulate 
+$ ./jamulate
 *jamulator.OrgPseudoOp
 *jamulator.LabelStatement
 *jamulator.DataStatement
@@ -1481,7 +1481,7 @@ module.o.
 </p>
 <p>
 LLVM is written in C++, but it also exposes a C interface.
-This means we can integrate cleanly using <a href="http://golang.org/cmd/cgo/">cgo</a>. 
+This means we can integrate cleanly using <a href="http://golang.org/cmd/cgo/">cgo</a>.
 In fact, <a href="http://awilkins.id.au/">Andrew Wilkins</a> maintains a convenient Go module called
 <a href="https://github.com/axw/gollvm">gollvm</a> which gives us seamless integration.
 </p>
@@ -1508,7 +1508,7 @@ int main() {
 </pre>
 <pre>
 $ clang -emit-llvm -S test.c
-$ 
+$
 </pre>
 <p>Now looking at test.s:</p>
 <pre>
@@ -1663,7 +1663,7 @@ Label_loop:
   ; Perform a bitwise AND with 1000 0000.
       %3 = and i8 128, %2
 
-  ; Test if the result is equal to 1000 000.
+  ; Test if the result is equal to 1000 0000.
       %4 = icmp eq i8 128, %3
 
   ; Save the answer to the negative status bit.
@@ -1879,9 +1879,9 @@ Let's make sure our goal LLVM code does what we expect:
 <pre>
 $ llc -filetype=obj hello.llvm
 $ gcc hello.llvm.o
-$ ./a.out 
+$ ./a.out
 Hello, World!
-$ 
+$
 </pre>
 <p>
 <code>llc</code> converts the LLVM IR code into a native object file, and then
@@ -1980,7 +1980,7 @@ compiling:
 <pre>
 <code class="language-go">func (p *Program) Compile(filename string) (c *Compilation) {
 	llvm.InitializeNativeTarget()
-	
+
 	c = new(Compilation)
 	c.program = p
 	c.Warnings = []string{}
@@ -1990,23 +1990,23 @@ compiling:
 	defer c.builder.Dispose()
 	c.labeledData = map[string]llvm.Value{}
 	c.labeledBlocks = map[string]llvm.BasicBlock{}
-	
+
 	// First pass to identify labeled data and create
 	// global variables, saving the indexes in `c.labeledData`.
 	c.identifyLabeledDataPass()
-	
+
 	// declare i32 @putchar(i32)
 	i32Type := llvm.Int32Type()
 	putCharType := llvm.FunctionType(i32Type, []llvm.Type{i32Type}, false)
 	c.putCharFn = llvm.AddFunction(c.mod, "putchar", putCharType)
 	c.putCharFn.SetLinkage(llvm.ExternalLinkage)
-	
+
 	// declare void @exit(i32) noreturn nounwind
 	exitType := llvm.FunctionType(llvm.VoidType(), []llvm.Type{i32Type}, false)
 	c.exitFn = llvm.AddFunction(c.mod, "exit", exitType)
 	c.exitFn.AddFunctionAttr(llvm.NoReturnAttribute | llvm.NoUnwindAttribute)
 	c.exitFn.SetLinkage(llvm.ExternalLinkage)
-	
+
 	// main function / entry point
 	mainType := llvm.FunctionType(i32Type, []llvm.Type{}, false)
 	c.mainFn = llvm.AddFunction(c.mod, "main", mainType)
@@ -2018,39 +2018,39 @@ compiling:
 	c.rA = c.builder.CreateAlloca(llvm.Int8Type(), "A")
 	c.rSNeg = c.builder.CreateAlloca(llvm.Int1Type(), "S_neg")
 	c.rSZero = c.builder.CreateAlloca(llvm.Int1Type(), "S_zero")
-	
+
 	// Second pass to build basic blocks.
 	c.buildBasicBlocksPass()
-	
+
 	// Finally, one last pass for codegen.
 	c.codeGenPass()
-	
+
 	// hook up the first entry block to the reset block
 	c.builder.SetInsertPointAtEnd(entry)
 	c.builder.CreateBr(*c.resetBlock)
-	
+
 	err := llvm.VerifyModule(c.mod, llvm.ReturnStatusAction)
 	if err != nil {
 		c.Errors = append(c.Errors, err.Error())
 		return
 	}
-	
+
 	// Uncomment this to print the LLVM IR code we just generated
 	// to stderr.
 	//c.mod.Dump()
-	
+
 	fd, err := os.Create(filename)
 	if err != nil {
 		c.Errors = append(c.Errors, err.Error())
 		return
 	}
-	
+
 	err = llvm.WriteBitcodeToFile(c.mod, fd)
 	if err != nil {
 		c.Errors = append(c.Errors, err.Error())
 		return
 	}
-	
+
 	err = fd.Close()
 	if err != nil {
 		c.Errors = append(c.Errors, err.Error())
@@ -2299,7 +2299,7 @@ Let's make sure it runs as expected:
 <pre>
 $ llc -filetype=obj hello.bc
 $ gcc hello.bc.o
-$ ./a.out 
+$ ./a.out
 Hello, World!
 $
 </pre>
@@ -2463,7 +2463,7 @@ Wow! The code looks completely different, and much simpler. But does it still ru
 <pre>
 $ llc -filetype=obj hello.bc
 $ gcc hello.bc.o
-$ ./a.out 
+$ ./a.out
 Hello, World!
 $
 </pre>
@@ -2570,7 +2570,7 @@ instructions that this program uses. Let's unpack that rom
 and see what we're up against:
 </p>
 <pre>
-$ ./jamulate -unrom roms/Zelda.NES 
+$ ./jamulate -unrom roms/Zelda.NES
 loading roms/Zelda.NES
 disassembling to roms/Zelda
 $ ls -l roms/Zelda
@@ -2916,7 +2916,7 @@ Good thing we bothered to make an assembler. Now we can put the ROM
 back together, run it in an emulator, and see if it still works:
 </p>
 <pre>
-$ ./jamulate -rom roms/Zelda/Zelda.jam 
+$ ./jamulate -rom roms/Zelda/Zelda.jam
 building rom from roms/Zelda/Zelda.jam
 saving rom Zelda.NES
 </pre>
@@ -3129,7 +3129,7 @@ func (c *Compilation) dynStore(addr llvm.Value, val llvm.Value) {
 
 	// done. X_X
 	c.selectBlock(storeDoneBlock)
-} 
+}
 
 func (c *Compilation) createIf(cond llvm.Value) llvm.BasicBlock {
 	// Create a conditional branch along with the 2 target blocks.
@@ -3429,7 +3429,7 @@ void rom_cycle(uint8_t cycles) {
     }
 }
 
-// This function is our new main entry point. We rename the 
+// This function is our new main entry point. We rename the
 // main rom entry point to `rom_start` so that we can call it
 // from this function.
 int main(int argc, char* argv[]) {
@@ -3551,14 +3551,14 @@ clang -o runtime/ppu.o -c runtime/ppu.c
 clang -o runtime/nametable.o -c runtime/nametable.c
 ar rcs runtime/runtime.a runtime/main.o runtime/ppu.o runtime/nametable.o
 go build -o jamulate main.go
-$ 
+$
 </pre>
 <p>
 Next we can implement a command which will read a .nes ROM file and perform
 the recompilation process:
 </p>
 <pre>
-$ ./jamulate -recompile roms/Zelda.NES 
+$ ./jamulate -recompile roms/Zelda.NES
 loading roms/Zelda.NES
 Disassembling...
 Decompiling to /tmp/302858262/prg.bc...
@@ -3567,7 +3567,7 @@ gcc /tmp/302858262/prg.o runtime/runtime.a -lGLEW -lGL -lSDL -lSDL_gfx -o roms/Z
 Done: roms/Zelda
 $ file ./roms/Zelda
 ./roms/Zelda: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked (uses shared libs), for GNU/Linux 2.6.24, BuildID[sha1]=0xa79ee93a78a4745b60ba9d10a58b209d756e8ffa, not stripped
-$ 
+$
 </pre>
 <p>
 And so here we have it: an executable binary that depends on SDL and OpenGL, which
@@ -3935,7 +3935,7 @@ Notice anything peculiar?
 </p>
 <p>
 After the value at <code>$0770</code> is loaded into register A, and we return
-from the <code>Label_8e04</code> subroutine, 
+from the <code>Label_8e04</code> subroutine,
 there is an uncommon indirect <code>AND</code> instruction,
 followed by data.
 What could possibly be happening here?
