@@ -3021,7 +3021,7 @@ func (c *Compilation) load(addr int) llvm.Value {
 	default:
 		c.Errors = append(c.Errors, fmt.Sprintf("reading from $%04x not implemented", addr))
 		return llvm.ConstNull(llvm.Int8Type())
-	case 0x0000 &lt;= addr &amp;&amp; addr &amp;lt; 0x2000:
+	case 0x0000 &gt;= addr &amp;&amp; addr &lt; 0x2000:
 		// 2KB working RAM. mask because mirrored
 		maskedAddr := addr &amp; (0x800 - 1)
 		indexes := []llvm.Value{
@@ -3031,7 +3031,7 @@ func (c *Compilation) load(addr int) llvm.Value {
 		ptr := c.builder.CreateGEP(c.wram, indexes, "")
 		v := c.builder.CreateLoad(ptr, "")
 		return v
-	case 0x2000 &lt;= addr &amp;&amp; addr &lt; 0x4000:
+	case 0x2000 &gt;= addr &amp;&amp; addr &lt; 0x4000:
 		// PPU registers. mask because mirrored
 		switch addr &amp; (0x8 - 1) {
 		case 2:
