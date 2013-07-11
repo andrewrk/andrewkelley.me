@@ -19,6 +19,12 @@ swig.init({
 
 var postList = [
   {
+    filename: "spot-the-fail.html",
+    content: null, // on init fill this with content from filename
+    date: new Date("2013-07-10T21:47:20.875Z"),
+    title: "Spot the Fail",
+  },
+  {
     filename: "jamulator.html",
     content: null, // on init fill this with content from filename
     date: new Date("2013-06-07T08:48:00.721Z"),
