@@ -19,6 +19,12 @@ swig.init({
 
 var postList = [
   {
+    filename: "js-private-methods.html",
+    content: null, // on init fill this with content from filename
+    date: new Date("2013-07-17T02:20:54.462Z"),
+    title: "Private Methods in JavaScript",
+  },
+  {
     filename: "spot-the-fail.html",
     content: null, // on init fill this with content from filename
     date: new Date("2013-07-10T21:47:20.875Z"),

@@ -1,0 +1,94 @@
+<h1>Private Methods in JavaScript</h1>
+<p>
+In JavaScript, we don't have private methods right?
+We must to resort to using <code class="language-javascript">this._somePrivateThing()</code> right?
+</p>
+<p>
+Wrong.
+</p>
+<h2>Before</h2>
+<pre>
+<code class="language-javascript">function Cell(x, y) {
+  this.x = x;
+  this.y = y;
+  this.things = [1, 2, 3];
+
+  // I guess I'll have to use an underscore to indicate that this
+  // method is private.
+  this._initializeSomethingElse();
+}
+
+Cell.prototype._initializeSomethingElse = function() {
+  this.dir = Math.atan2(this.y, this.x);
+  this.total = 0;
+  // hmm, I need a reference to this in that callback. I'll have to
+  // save a copy or use bind
+  var self = this;
+  self.things.forEach(function(thing) {
+    self.total += thing;
+  });
+};</code>
+</pre>
+<h2>After</h2>
+<pre>
+<code class="language-javascript">function Cell(x, y) {
+  this.x = x;
+  this.y = y;
+  this.things = [1, 2, 3];
+
+  // boom. private method.
+  initializeSomethingElse(this);
+}
+
+function initializeSomethingElse(self) {
+  self.dir = Math.atan2(self.y, self.x);
+  self.total = 0;
+  self.things.forEach(function(thing) {
+    self.total += thing;
+  });
+}</code>
+</pre>
+<p>
+Notice that as an added benefit, the new private method is given an explicit
+reference to the instance, so if you need to use a callback you don't
+have to shuffle around the <code>this</code> pointer.
+</p>
+<h2>"But it will fool the optimizer!"</h2>
+<p>Wrong again.</p>
+<p>Let's benchmark the above examples:</p>
+<pre>
+<code class="language-javascript">var PrivCell = require('./priv');
+var NoPrivCell = require('./no-priv');
+
+console.log("Test 1 - no priv method:", Math.round(test(NoPrivCell)) + "ms");
+console.log("Test 1 - private method:", Math.round(test(PrivCell)) + "ms");
+
+console.log("Test 2 - no priv method:", Math.round(test(NoPrivCell)) + "ms");
+console.log("Test 2 - private method:", Math.round(test(PrivCell)) + "ms");
+
+console.log("Test 3 - no priv method:", Math.round(test(NoPrivCell)) + "ms");
+console.log("Test 3 - private method:", Math.round(test(PrivCell)) + "ms");
+
+function test(Cell) {
+  var start = new Date();
+  var total = 0;
+  for (var i = 0; i < 20000000; i += 1) {
+    var c = new Cell();
+    total += c.total;
+  }
+  return new Date() - start;
+}</code>
+</pre>
+<p>Running the benchmark on my machine:</p>
+<pre>
+Test 1 - no priv method: 5525ms
+Test 1 - private method: 5537ms
+Test 2 - no priv method: 5537ms
+Test 2 - private method: 5571ms
+Test 3 - no priv method: 5572ms
+Test 3 - private method: 5595ms
+</pre>
+<p>
+Makes no difference.
+It's clean, it solves the problem, and it has no performance implications.
+</p>
