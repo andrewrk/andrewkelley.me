@@ -92,3 +92,31 @@ Test 3 - private method: 5595ms
 Makes no difference.
 It's clean, it solves the problem, and it has no performance implications.
 </p>
+<h2>Browser Scoping</h2>
+<p>
+Note that if you're writing the code in an environment which does not
+provide scoping, such as a &lt;script&gt; tag in the browser, you'll
+want to wrap the entire thing in an anonymous function call:
+</p>
+<pre>
+<code class="language-javascript">var Cell = (function() {
+  function Cell(x, y) {
+    this.x = x;
+    this.y = y;
+    this.things = [1, 2, 3];
+
+    // boom. private method.
+    initializeSomethingElse(this);
+  }
+
+  function initializeSomethingElse(self) {
+    self.dir = Math.atan2(self.y, self.x);
+    self.total = 0;
+    self.things.forEach(function(thing) {
+      self.total += thing;
+    });
+  }
+
+  return Cell;
+})();</code>
+</pre>
