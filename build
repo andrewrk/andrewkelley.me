@@ -19,6 +19,12 @@ swig.init({
 
 var postList = [
   {
+    filename: "pillagers-7drts-game-dev-journal.html",
+    content: null,
+    date: new Date("2013-07-23T10:09:53.701Z"),
+    title: "Pillagers! 7dRTS Game Development Journal",
+  },
+  {
     filename: "js-private-methods.html",
     content: null, // on init fill this with content from filename
     date: new Date("2013-07-17T02:20:54.462Z"),

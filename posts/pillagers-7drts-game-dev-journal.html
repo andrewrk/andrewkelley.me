@@ -1,0 +1,85 @@
+<h1>Pillagers! 7dRTS Game Development Journal</h1>
+<p class="lead">
+22 July 2013 - 29 July 2013
+</p>
+<p>
+I have decided to participate in the
+<a href="http://www.ludumdare.com/compo/2013/07/05/minild-44-announcement/">7-Day Real Time Strategy Challenge, July 2013 edition</a>.
+</p>
+<p>
+I am working with <a href="http://brokensounds.com/">Broken Sounds</a> who will
+create sound effects, music, and be in charge of the "atmosphere" of the game.
+</p>
+<h2>Day 1</h2>
+<p>
+I am using <a href="https://github.com/superjoe30/chem/">chem</a>,
+a canvas-based game engine I made for rapid development occasions 
+such as this. It has been working out quite well and I think it has been
+playing a large role in my productivity today.
+</p>
+<p>
+The game is codenamed "pillagers". The idea is to mix space physics with
+real time strategy and see what comes out.
+Instead of creating a carefully planned out base, you will be campaigning
+through levels, pillaging for resources.
+</p>
+<p>That's the idea, anyway. We'll see how it pans out.</p>
+<p>
+Here's a list of the things that work right now:
+</p>
+<ul>
+  <li>Selecting squads and telling them to move around.</li>
+  <li>Ships shoot enemy ships, destroying them when their health reaches 0.</li>
+  <li>Scrolling around the map.</li>
+  <li>Auto generated parallax background with stars and a planet.</li>
+</ul>
+<p>
+The code is
+<a href="https://github.com/superjoe30/pillagers">open source, hosted on GitHub</a>.
+It's 941 lines of JavaScript:
+</p>
+<pre>
+   46 src/bullet.js
+   33 src/explosion.js
+  432 src/main.js
+   19 src/militia_ship.js
+  241 src/ship_ai.js
+  165 src/ship.js
+    5 src/uuid.js
+  941 total
+</pre>
+<p>Screenshot of a squad of ships under attack:</p>
+<img src="https://s3.amazonaws.com/superjoe/blog-files/pillagers-7drts-game-dev-journal/screenshot-day-1.png" alt=""/>
+<p>Short video of me playing around with some elements of the game</p>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/QQ1jGk5e7o0" frameborder="0" allowfullscreen></iframe>
+<p>
+It was a fun challenge to write the AI to get the ships to stop at the intended
+destinations. As is it's not optimal, but I think that's okay. Maybe later
+classes of ships will have better AI.
+</p>
+<p>
+You can actually <a href="http://s3.amazonaws.com/superjoe/temp/pillagers/index.html">play this game right now</a>. Since it's web based, you don't
+even have to download anything.
+</p>
+<p>
+Here's what the TODO list looks like currently:
+</p>
+<ul>
+  <li>Edit the main militia ship to have short range.</li>
+  <li>Auto targeting enemies should only work when close enough.</li>
+  <li>Ability to right click an enemy ship to tell squad to target it.</li>
+  <li>Add enemy turrets and ships to level 1.</li>
+  <li>Add enemy flag which grants victory when destroyed.</li>
+  <li>Add 2nd class of ship which you get some of at beginning of level 1.</li>
+  <li>
+  Instead of giving the player ships at the beginning, give them cash
+  and buildings which they can use to create the ships they want.
+  The user will thus be able to choose how many of class 1 and class 2 ships
+  they want.
+  </li>
+  <li>Put instruction label text in level 1 to explain the controls.</li>
+  <li>Start planning level 2.</li>
+</ul>
+<p>
+Well, I'm off to bed to get some rest. Looking forward to Day 2!
+</p>
