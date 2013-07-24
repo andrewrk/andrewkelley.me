@@ -7,10 +7,10 @@ I have decided to participate in the
 <a href="http://www.ludumdare.com/compo/2013/07/05/minild-44-announcement/">7-Day Real Time Strategy Challenge, July 2013 edition</a>.
 </p>
 <p>
-I am working with <a href="http://brokensounds.com/">Broken Sounds</a> who will
+I am working with <a href="http://brokensounds.com/">Michael Weber</a> who will
 create sound effects, music, and be in charge of the "atmosphere" of the game.
 </p>
-<h2>Day 1</h2>
+<h2 id="day-1">Day 1</h2>
 <p>
 I am using <a href="https://github.com/superjoe30/chem/">chem</a>,
 a canvas-based game engine I made for rapid development occasions 
@@ -82,4 +82,133 @@ Here's what the TODO list looks like currently:
 </ul>
 <p>
 Well, I'm off to bed to get some rest. Looking forward to Day 2!
+</p>
+<h2 id="day-2">Day 2</h2>
+<p>
+<a href="http://opengameart.org/">opengameart.org</a> has been very good to
+me. I think this will be my new go-to game dev art supply.
+So far I've found everything I've wanted on that site, except for a
+meteor sprite. Maybe I'll make one and contribute back.
+</p>
+<p>
+Michael made a lazer sound and a ship thrusting sound, and I
+added the sound effects to the game.
+In addition to that, I made a ton of progress today:
+</p>
+<ul>
+  <li>3pm - draw flags only if selected</li>
+  <li>5pm - add another class of ship</li>
+  <li>8pm - found out I was using <code>t * a ^ 2 + t * v</code> for
+  acceleration instead of <code>a ^ 2 * t + v * t</code>. I fixed
+  all the math and made ships arriving at gather points nice and smooth.
+  </li>
+  <li>9pm - added team colors overlayed on ships</li>
+  <li>10pm - gave the Militia ship an electric melee attack</li>
+  <li>11pm - gave Militia ships smart attacking AI</li>
+  <li>12am - made Ranger ships pursue targets</li>
+  <li>2am - added TurretShip and FlagShip</li>
+  <li>3am - added support for ships with backwards thrusters</li>
+  <li>3am - added move &amp; engage command</li>
+  <li>3am - improved ship selection capabilities</li>
+  <li>5am - added title screen, credits screen, and game over screen.
+    I made it possible to win and lose the game.
+  </li>
+  <li>5am - added title screen and credits screen</li>
+</ul>
+<p>
+Here's the title screen:
+</p>
+<img src="https://s3.amazonaws.com/superjoe/blog-files/pillagers-7drts-game-dev-journal/day-2-titlescreen.png" alt="">
+<p>
+Here's a screenshot of a battle underway:
+</p>
+<img src="https://s3.amazonaws.com/superjoe/blog-files/pillagers-7drts-game-dev-journal/day-2-screenshot.png" alt="">
+<p>
+Battles can get hectic and chaotic, but it is fun to watch it play out.
+Here's a video of me demoing a battle:
+</p>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/pnEsHqmNU2c" frameborder="0" allowfullscreen></iframe>
+<p>
+Again, you can playtest this game in your browser right now using the
+<a href="http://s3.amazonaws.com/superjoe/temp/pillagers/index.html">same url</a> as Day 1.
+Feel free to give me feedback or advice.
+</p>
+<p>
+I came up with some ideas on what bigger picture gameplay will look like
+which I am pretty pleased with.
+There will be a bunch of different classes of ships, for example:
+</p>
+<dl>
+  <dt>Militia</dt>
+  <dd>Basic cheap unit. Has short range. Agile.
+  Actually doesn't shoot lazers, shoots a short range but powerful
+  lightning attack out the front. It must resort to charging other
+  ships to attack them.
+  </dd>
+  <dt>Ranger</dt>
+  <dd>Short range weak lazers. Less agile. Less defense. In a level, a
+   Militia should be able to overtake a Ranger and kill it.
+  </dd>
+  <dt>Artillery</dt>
+  <dd>Slower, shoots big lazers. Slow moving, weak defense.
+  </dd>
+  <dt>FlagShip</dt>
+  <dd>Does not attack. Has high defense. Moves very slowly.
+  </dd>
+  <dt>Turret</dt>
+  <dd>Stationary lazer shooter.
+  </dd>
+  <dt>Medi</dt>
+  <dd>Heals other ships.</dd>
+</dl>
+<p>
+There will be some obvious deficiencies with the ships targeting systems
+and AI. These can be helped with upgrades, such as:
+</p>
+<ul>
+  <li>Targeting
+  <ul>
+    <li>Target the first enemy found (default)</li>
+    <li>Target the closest enemy.</li>
+    <li>Communicate with others to divide up the targets evenly.</li>
+ </ul>
+  </li>
+  <li>Ranger
+  <ul>
+    <li>Upgrade range.</li>
+    <li>Update bullet count to 3.</li>
+    <li>Evasive maneuvers 1.</li>
+    <li>Evasive maneuvers 2.</li>
+    <li>Smarter aiming.</li>
+    <li>Backwards thrusters.</li>
+  </ul>
+  </li>
+  <li>Militia
+  <ul>
+    <li>Evade lazers.</li>
+    <li>Backwards thrusters.</li>
+    <li>Smarter aiming.</li>
+   </ul>
+   </li>
+</ul>
+<p>
+You will start with only a flagship, and as you progress throughout
+the campaign, you will start to build up a convoy that gets ever bigger
+and more powerful. You'll need it to be bigger and more powerful
+to get through later levels, in fact.
+</p>
+<p>
+Here's what's next on the TODO list:
+</p>
+<ul>
+  <li>Build simpler level 1 where you only have to navigate your
+  flag ship around meteors.</li>
+  <li>Give the player some cash and let them choose to build
+  Ranger ships or Militia ships using the Flagship.
+  </li>
+  <li>Create level 2 where you have to destroy the enemy flagship
+  and then fly your flagship through the created portal.</li>
+</ul>
+<p>
+I'm at a pretty good checkpoint right now. I'm calling it a night.
 </p>
