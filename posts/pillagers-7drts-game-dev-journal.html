@@ -320,7 +320,7 @@ Here's what it looks like when you finish the level:
 <p>
 And here's me giving a walkthrough of the progress made today:
 </p>
-<iframe width="420" height="315" src="https://www.youtube.com/embed/yL-C7-h34qM" frameborder="0" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/yL-C7-h34qM" frameborder="0" allowfullscreen></iframe>
 <p>
 My TODO list is getting a bit unruly. I've divided it into "next steps" and
 "nice-to-have"s:
@@ -397,4 +397,72 @@ Screencast demo:
 </p>
 <p>
 Bed.
+</p>
+<h2 id="day-5">Day 5</h2>
+<p>
+I spent a good chunk of the day trying to solve a performance problem.
+After approximately 100,000 bullets were fired, the framerate would
+drop to an excruciating 16 FPS.
+</p>
+<p>
+I was able to figure it out by using Google Chrome's
+<a href="https://developers.google.com/chrome-developer-tools/docs/heap-profiling">heap profiling tool</a>.
+Here's what the heap snapshot looked like:
+</p>
+<img src="https://s3.amazonaws.com/superjoe/blog-files/pillagers-7drts-game-dev-journal/day-5-memory-leak.png">
+<p>
+I found out that there was a memory leak in the game engine - every time
+a sprite was created it called <code>setInterval</code> but it did not
+call <code>clearInterval</code> when the sprite was deleted.
+Ever since I <a href="https://github.com/superjoe30/chem/commit/900ba7c6f5c27617d9917653ee4d63e4f043374d">fixed the issue</a>, FPS has stayed at a nice
+and smooth 60, no matter how many objects are created and destroyed.
+</p>
+<p>
+Here are some other things I got done today:
+</p>
+<ul>
+  <li>9pm - Miscellanous small enhancements.</li>
+  <li>11pm - Fixed the performance issue.</li>
+  <li>12am - Added the new thruster sound that Michael gave me.</li>
+  <li>3am - Added Sandbox Mode.</li>
+  <li>4am - Added more features to Sandbox Mode.</li>
+  <li>6am - Added Ctrl+A to select all your ships. Also made WASD and J
+      work the same as arrow keys and space.</li>
+  <li>7am - Added dogfighting mode.</li>
+  <li>8am - Added graphics so that ships display their targets when selected.</li>
+  <li>8am - Added 2 more dogfighting levels. Enhanced manual piloting of Militia
+      ship so that you can use your melee attack.</li>
+</ul>
+<p>
+Here's a screenshot of Sandbox mode:
+</p>
+<img src="https://s3.amazonaws.com/superjoe/blog-files/pillagers-7drts-game-dev-journal/day-5-sandbox-mode.png">
+<p>
+Here's me playing through Dogfighting Mode and messing around in
+Sandbox Mode a bit:
+</p>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/7bFireOA96Q" frameborder="0" allowfullscreen></iframe>
+<p>
+I have only 2 days left to work.
+The last day will be primarily reserved for gameplay tweaking, bugfixes,
+touchups, and testing.
+That leaves only 1 more day to make actual progress.
+</p>
+<p>
+These are my goals for tomorrow:
+</p>
+<ul>
+  <li>Add a rotating turret to the flagship.</li>
+  <li>Add a civilian to Level 1 and use that to explain the Move command
+  vs the Engage command.</li>
+  <li>Add a dogfighting level where there is an ongoing battle and you
+      have to rack up a certain number of kills to win.</li>
+  <li>Add more campaign levels. I reserve the right to ramp up the
+      difficulty in the later levels!</li>
+  <li>Pan sound effects and volume depending on scroll location</li>
+  <li>Add some more ship classes and implement upgrades.</li>
+</ul>
+<p>
+Thanks to the folks in the #7dRTS IRC channel for helping me playtest today.
+Specifically Zapa and Orava.
 </p>
