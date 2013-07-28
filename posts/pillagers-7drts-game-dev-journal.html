@@ -466,3 +466,60 @@ These are my goals for tomorrow:
 Thanks to the folks in the #7dRTS IRC channel for helping me playtest today.
 Specifically Zapa and Orava.
 </p>
+<h2 id="day-6">Day 6</h2>
+<p>
+Today I worked on making the level format and core engine more robust. I added a bunch
+more dogfighting levels. There are 11 now, and they get pretty crazy at the end.
+</p>
+<p>
+The cool thing about them is that the core game engine does not even know that
+you are in "Dogfighting Mode". There's no <code>dogfightingMode</code> variable
+that tells the engine that's what you're doing. Instead, the
+<a href="https://github.com/superjoe30/pillagers/blob/7d09b2f0842e8962e059ebaa7c05fbf47cff890a/public/text/dogfight0.json">level format</a>
+supports trigger conditions, events, and groups, and the logic of dogfighting
+is done in the level JSON file.
+</p>
+<p>
+Michael gave me the battle music today as well. It sounds amazing. I made it
+so that the game automatically detects when you are entering or exiting a battle and
+transitions the music appropriately. I'm pleased with the effect.
+</p>
+<p>
+Here's a list of what I got done today:
+</p>
+<ul>
+  <li>
+  12am - Added battle music. The game automatically detects when a battle is
+  happening and fades in the battle music, then fades back to normal music
+  once the battle is over.
+  </li>
+  <li>
+  1am - Added more dogfighting levels.
+  </li>
+  <li>
+  3am - Worked on making dogfighting levels more fun. You have to try again if you die rather than respawning.
+  </li>
+  <li>
+  4am - Made the Militia ship show the area of attack when you are manually piloting it.
+  </li>
+  <li>
+  6am - Sandbox Mode: Ability to load and save. I was able to use this to build some dogfighting levels.
+  </li>
+  <li>
+  7am - Added more dogfighting levels.
+  </li>
+</ul>
+<p>
+I did not accomplish most of what I set out to today. Regardless, I am really happy with Dogfighting Mode
+right now. It's almost certainly more fun than Campaign Mode currently.
+</p>
+<p>
+Here's a video of me playing through it:
+</p>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/vye8Sfs3rFM" frameborder="0" allowfullscreen></iframe>
+<p>
+This version of the game is going to be pretty close to the final one that I submit for 7dRTS.
+I will probably only spend about 6-8 more hours on this debugging on Firefox and bugfixing.
+I will not be supporting Internet Explorer.
+</p>
+
