@@ -66,6 +66,12 @@ var postList = [
     date: new Date("2011-08-04T12:00:00.000Z"),
     title: "John Muir Trail from the Perspective of Andrew Kelley",
   },
+  {
+    filename: "lemming-pyweek-12.html",
+    content: null, // on init fill this with content from filename
+    date: new Date("2011-04-02T12:00:00.000Z"),
+    title: "Lemming - PyWeek #12 Game Development Journal",
+  },
 ];
 readPostContentAndGenerateRss();
 

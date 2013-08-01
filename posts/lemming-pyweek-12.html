@@ -1,0 +1,304 @@
+<h1>Lemming - PyWeek #12 Game Development Journal</h1>
+<p class="lead">
+02 April 2011 - 09 April 2011
+</p>
+<p>
+<a href="http://pyweek.org/12/">PyWeek #12</a> challenge starts in 
+2 days, 16 hours, and 11 minutes.
+</p>
+<p>
+And I have 23 hours of homework to do in order to clear the Week of Py for
+development. 
+</p>
+<p>
+I've plotted out THIS week in Google Calendar (the week before PyWeek) - an entry for homework time, break time, and even sleep time. I'm following a strict schedule for optimum time management during PyWeek. The start date is 5pm on Saturday for me, so I have rotated my sleep schedule so that I will go to sleep at 9am on Saturday in order to wake up just as PyWeek starts.
+</p>
+<p>
+I'm getting pumped up. I can't wait to start!
+</p>
+<h2 id="day-1"><a href="#day-1">End of Day 1</a></h2>
+<p>
+Status: Tired, Hungry, Have to Pee
+</p>
+<p>
+Idea: Side scrolling platformer. You're an odd-shaped lemming-like creature leading a stampede of 9 clones. When you die control is instantly transferred to the next one behind you. Your death affects the environment, so a large part of the gameplay will be suiciding yourself in order to get the next guy behind you to safety. Dying should be fun and comedic.
+</p>
+<p>
+Screenshot:
+</p>
+<img src="http://superjoesoftware.com/temp/pyweek-screenshot-1.png">
+<p>
+<a href="http://superjoesoftware.com/temp/pyweek-day-1.mpg">Video</a>
+</p>
+<p>
+<a href="https://github.com/superjoe30/lemming">Source code on GitHub</a>
+</p>
+<p>
+Lines of code so far: 612
+</p>
+<p>
+Decided to go with a tile-based level format.
+</p>
+<p>
+I got hung up for a while on pyglet's inverted Y axis but I'm getting used to it now.
+</p>
+<p>
+Having some trouble keeping the frame rate up. I have it up to about 24 but that's not even with a complete level. I'm hoping I won't have to mess with OpenGL directly, as I always encounter bugs that take hours upon hours to find when I do. I'm using pyglet's batch sprite API currently.
+</p>
+<p>
+Next up on the TODO list is to create more interesting tile types and implement the physics for them. Maybe then getting a parallax background going (hard part is finding/creating the art). I think I'll save animation for later. I'd rather focus on my strengths (programming) and get some good gameplay going, and then if I have time I can make the animation happen. Really wishing I had an artist on board at this point.
+</p>
+<p>
+Well, time for an 8-hour nap and then it's back to work!
+</p>
+<h2 id="pyglet-bug"><a href="#pyglet-bug">pyglet bug</a></h2>
+<p>I ran into a
+<a href="http://code.google.com/p/pyglet/issues/detail?id=411">rather unfortunate pyglet bug</a> regarding animation.
+</p>
+<p>
+This is going to cost me a an hour or two of dev time to use sprite sheets instead of .gif's :-(
+</p>
+<p>
+In other news, new screenshot:
+</p>
+<img src="http://www.superjoesoftware.com/temp/pyweek-screenshot-2.png">
+<p>
+Also, when I tried to upload my character art (<img src="http://superjoesoftware.com/temp/pyweek-char-art.png">) to Facebook, I got this:
+</p>
+<img src="http://www.superjoesoftware.com/temp/pyweek-character-art-facebook.png">
+<p>LOL!</p>
+<h2 id="day-2"><a href="#day-2">End of Day 2</a></h2>
+<p>
+Here I am at the end of day 2. According to git log, here's what I've done today:
+</p>
+<p>
+6:24pm: scrolling 2-layer background
+8:23pm: ability to detatch leader and give control to the next guy
+10:44pm: suicide bomb control works
+11:57pm: +1 dude powerup
+12:06am: +infinite dudes powerup
+12:21am: land mines 
+12:35am: spikes
+9:20am: totally rewrite display engine and change level format.
+9:38am: use pyglet resources rather than the skelington data.py module
+</p>
+<p>
+Lines of code so far: 542. This is interesting because yesterdays LOC count was 612. After a full day's work and several new features, I ended up with less code. Three cheers for good design!
+</p>
+<p>
+I'm now using
+<a href="http://www.mapeditor.org/">Tiled</a>
+for editing, which is way nicer than my own hacked up piece of crap level editor. I had fun deleting that.
+</p>
+<p>
+Thanks to the display engine rewrite (I simply use glTranslatef instead of manually positioning every sprite), all my FPS worries are gone. I'm well above 60. However I have a new problem: weird line artifacts appearing on sprites. It seems almost as if the bottom row of pixels of every sprite is displaying on the top of the sprite instead. You can see it in the screenshot - there isn't supposed to be a flickering  line on the spikes.
+</p>
+
+<p><a href="http://www.superjoesoftware.com/temp/pyweek-video-day-2.mpg">Video</a></p>
+<img src="http://www.superjoesoftware.com/temp/pyweek-day-2-screenshot.png">
+
+<p>
+Next up on the TODO list: use the nifty level editor to create more tiles and a fun and legit Level 1. Then begin to do whatever game upgrades necessary to make Level 1 work. This may involve doing some (shudder) animations.
+</p>
+
+<p>
+I should begin to think about music and sound effects too. I am considering making the background music myself. I have been known to make
+<a href="http://theburningawesome.bandcamp.com/">some music</a>
+in
+<a href="http://www.image-line.com/documents/flstudio.html">FL Studio</a>.
+I think it would be fun if some parts of the level pulsated to the beat of the music.
+</p>
+<h2 id="day-3"><a href="#day-3">End of Day 3</a></h2>
+<p><a href="http://www.superjoesoftware.com/temp/pyweek-video-day-3.mpg">Video</a></p>
+<img src="http://www.superjoesoftware.com/temp/pyweek-screenshot-day-3.png">
+
+<p>Lines of code so far: 653</p>
+
+<p>What I've done:</p>
+
+<ul>
+  <li>7:27pm: fixed the sub-pixel access issue with glTranslatef. thanks richard!</li>
+  <li>12:13am: created animation assets for the main character</li>
+  <li>1:05am: implement animation support in the game logic</li>
+  <li>3:27am: smooth camera movement - follows the character at a damped acceleration curve</li>
+  <li>6:50am: created level 1 in map editor with some unimplemented game ideas and tiles</li>
+</ul>
+<p>Here is some new concept art:</p>
+<img src="http://www.superjoesoftware.com/temp/winnar.png">
+<img src="http://www.superjoesoftware.com/temp/sadface.png">
+<p>Problem: I have a mid-term coming up in 7 hours, and I have not been to class or read the book since the last test. Also I worked through the night so I will be in sleepy-and-not-motivated mode all day while studying and test-taking. Bleh.</p>
+<p>Overview of what my TODO list looks like right now:</p>
+<ul>
+  <li>try to not fail college</li>
+  <li>implement in game logic all the stuff I just pretended would work when I made level 1</li>
+  <li>make another level with even more new ideas and then implement them. repeat until satisfied.</li>
+  <li>sound effects</li>
+  <li>bg music</li>
+  <li>HUD</li>
+  <li>menu system / title screen</li>
+  <li>death / game over</li>
+  <li>test on windows and mac</li>
+</ul>
+
+<h2 id="day-4"><a href="#day-4">End of Day 4</a></h2>
+<p>
+Good news and bad news. The bad news is that I got at best 55% on my statistics test yesterday. The good news is that I have all kinds of new stuff done for PyWeek. I think I have my priorities in the right place :-)
+</p>
+<img src="http://www.superjoesoftware.com/temp/pyweek-day-4-screenshot.png">
+<p><a href="http://www.superjoesoftware.com/temp/pyweek-day-4.mpg">Video #1</a></p>
+<p><a href="http://www.superjoesoftware.com/temp/pyweek-day-4-#2.mpg">Video #2</a></p>
+
+<ul>
+  <li>3:20am: more advanced collision detection which makes walls work</li>
+  <li>4:18am: ramps work</li>
+  <li>4:33am: text boxes work. (that was dead simple, thanks to pyglet!)</li>
+  <li>5:40am: belly flops work.</li>
+  <li>6:16am: ladders work</li>
+  <li>6:52am: decorations work; added house decoration</li>
+  <li>7:18am: add ladder animation</li>
+  <li>8:15am: add monster animations</li>
+  <li>8:51am: added monster who throws you</li>
+  <li>9:23am: explosions will break breakable stuff</li>
+  <li>9:39am: you can explode monsters</li>
+  <li>9:54am: add some tiles to make the level a little nicer</li>
+  <li>11:33am: implement buttons and bridges. level 1 works completely</li>
+  <li>12:21am: support reverse direction for monsters</li>
+</ul>
+
+<p>I talked to my friend
+<a href="http://www.soundclick.com/bands/default.cfm?bandID=501445">Tyler</a>
+and he wants to make the music for the game, if only he can whip his computing situation into shape in time. I'm crossing my fingers.
+</p>
+
+<p>I've formulated a plan for the rest of the days I have left:</p>
+
+<p>Day 5:</p>
+<ul>
+  <li>sound effects</li>
+  <li>HUD</li>
+  <li>menu system and title screen</li>
+  <li>game over</li>
+</ul>
+<p>Day 6:</p>
+<ul>
+<li>implement as many gameplay ideas as possible</li>
+<li>create as many levels as possible exploring those concepts</li>
+<li>bg music if it doesn't work out with tyler</li>
+</ul>
+<p>Day 7:</p>
+<ul>
+  <li>Dinner with family</li>
+  <li>Party with friends</li>
+  <li>Test on Mac and Windows and smooth out any glitches/bugs/problems with the experience.</li>
+  <li>bug fixing only. no new features</li>
+</ul>
+
+<h2 id="day-5"><a href="#day-5">End of Day 5</a></h2>
+<p>I'm really fighting sleep-deprivation right now. Going to crash like a rock as soon as I'm done with this diary entry. Like a rock? Is this how a person crashes? I can't remember. Anyways:</p>
+
+<ul>
+  <li>1:42pm (yes I cheated and worked more after yesterday's diary entry before sleeping): maps support background music and the game engine will stream, play, and loop the background music. I'm really liking how simple this stuff is in pyglet.</li>
+  <li>2:11pm: test on Windows with py2exe. It worked after I added another entry to the resource search path. It's not safe to rely on the .py file location - with py2exe it moves. I better warn people who used the skellington.</li>
+  <li>12:46am (after a nap and Poker Night at Tyler's across town): record, create, and find sound effects</li>
+  <li>2:04am: create a short background music track</li>
+  <li>3:58am: support sound effects in game</li>
+  <li>4:13am: if you don't belly flop, you don't cover as many spikes up</li>
+  <li>4:35am: a HUD which gives you hints as to what buttons you can press</li>
+  <li>7:07am: slim down tiledtmxloader and make it use pyglet.resource</li>
+  <li>8:57am: huge code refactor enabling me to switch scenes from gameplay to title screen or restart gameplay when you die. I took my own advice from
+  <a href="http://stackoverflow.com/questions/5581447/switching-scenes-with-pyglet">Hugoagogo's stack overflow help post</a>
+  and it worked pretty nicely. Hopefully there isn't a memory leak.</li>
+  <li>9:47am: title screen works and has sound</li>
+  <li>9:53am: FPS display is a command line argument, off by default</li>
+  <li>10:10am: on game over, starts level over</li>
+  <li>10:28am: if you beat the level you go on to the next one</li>
+  <li>10:41am: automatically save progress so player can continue from where they left off.</li>
+  <li>11:04am: credits scene when you win</li>
+</ul>
+<p><a href="http://www.superjoesoftware.com/temp/pyweek-day-5.mpg">Video</a></p>
+<img src="http://www.superjoesoftware.com/temp/pyweek-screenshot-day-5.png">
+<p><a href="http://superjoesoftware.com/temp/silly.mp3">Music</a></p>
+
+<p>I'm
+<a href="http://www.pyweek.org/d/3787/#comment-8584">waiting on confirmation</a>
+to make sure I don't have to swap out my explosion graphic. That would suck.</p>
+
+<p>TODO:</p>
+
+<p>Day 6:</p>
+<ul>
+  <li>implement as many gameplay ideas as possible</li>
+  <li>create as many levels as possible exploring those concepts</li>
+  <li>fix some bugs/nice-to-haves</li>
+</ul>
+<p>Day 7 (half-day):</p>
+<ul>
+  <li>test on windows and mac</li>
+  <li>complete the README and make sure all files are in place on pyweek.org</li>
+  <li>download the final submission and play through it on each operating system</li>
+</ul>
+<p>Bugs / nice to haves that I probably don't have time for:</p>
+<ul>
+  <li>credits song</li>
+  <li>physics bugs</li>
+  <li>the "beat level" jingle is obnoxious. re-do it</li>
+  <li>don't call game over until belly flop is done. he might pick up a +1</li>
+  <li>animate the title screen</li>
+</ul>
+
+<h2 id="day-6"><a href="#day-6">End of Day 6</a></h2>
+
+<p>Lines of code: 1939</p>
+
+<p>I'm not going to spoil the surprise by posting any more commit log, videos, pictures, or sound. You'll just have to play it to find out!</p>
+
+<p>Things are progressing on track. I already have something playable and working right now, all that needs doing is some more levels and bug fixes.</p>
+
+<p>Good news - Tyler managed to get his computer working and make an awesome track.</p>
+
+<p>I really need sleep but I'm going to be out and about for another 10 hours. I can do this.</p>
+
+<p>TODO:</p>
+<p>Day 7 (half-day):</p>
+<ul>
+  <li>create at least 3 more levels</li>
+  <li>critical bug: if you die several times, memory keeps expanding and sound stops working</li>
+  <li>important bug: belly flop stuck in wall, and don't call it game over until all belly flops are turned to dead bodies</li>
+  <li>test on windows and mac</li>
+</ul>
+<p>I'd really like to, but probably not going to get to these, unfortunately:</p>
+<ul>
+  <li>add a gory explosion of bloody organs when you die on spikes</li>
+  <li>bad physics glitch when you jump against a vertical wall</li>
+  <li>physics glitch with belly flops and spikes</li>
+  <li>death shouldn't interrupt the music flow</li>
+  <li>the sound that plays when you win is obnoxious and horrible</li>
+</ul>
+
+<h2 id="day-7"><a href="#day-7">End of Day 7</a></h2>
+<p>Well here I am. 32 minutes to go and I am submitted. That was a gruelling but satisfying experience.</p>
+
+<p>I tried to make as many levels as possible and ironically ended up with 9.</p>
+
+<p>2021 lines of python.</p>
+
+<p>Tyler's having fun with the level editor - I think we may continue to work on this past the competition.</p>
+
+<p>Also I'm going to contribute to Tiled. Having relied on it heavily, I know how to make it better.</p>
+
+<p>I also discovered a few pyglet bugs. I'll submit patches to fix them.</p>
+
+
+<h2 id="postmortem"><a href="#postmortem">Postmortem</a></h2>
+<p>A lot of people are getting stuck on Level 2.</p>
+
+<p>And 3, and 4, and 5, and...</p>
+
+<p>I realize now that I made the levels way too hard. I should have very slowly increased the difficulty.</p>
+
+<p><strong>Each new level shows off more</strong> of the game's gameplay elements, so it would be a shame for you to give up and judge without at least checking out all the levels.</p>
+
+<p>If you edit a file called "save_game" (this will be created if you beat level 1) in the directory you run the game from, it has the number of the level you start on when you press Continue from the title screen. You can edit this to skip around and see all 9 levels.</p>
+
+<p>Alternately, there is a YouTube video of me speedrunning through the entire game (only 7 minutes long):</p>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/BOkXWp4OLsM" frameborder="0" allowfullscreen></iframe>
