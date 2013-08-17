@@ -22,7 +22,7 @@ var postList = [
     filename: "js-callback-organization.html",
     content: null,
     date: new Date("2013-08-17T04:41:14.188Z"),
-    title: 'JavaScript are Pretty Okay',
+    title: 'JavaScript Callbacks are Pretty Okay',
   },
   {
     filename: "not-a-js-developer.html",
