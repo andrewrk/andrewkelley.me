@@ -19,6 +19,12 @@ swig.init({
 
 var postList = [
   {
+    filename: "do-not-use-bodyparser-with-express-js.html",
+    content: null,
+    date: new Date("2013-09-06T22:37:07.244Z"),
+    title: 'Do Not Use bodyParser with Express.js',
+  },
+  {
     filename: "js-callback-organization.html",
     content: null,
     date: new Date("2013-08-17T04:41:14.188Z"),
