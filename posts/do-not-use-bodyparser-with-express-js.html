@@ -86,6 +86,28 @@ This is suboptimal for several reasons:
     and then deleting the temp file. Why do all that when you don't want to accept uploads?
   </li>
 </ol>
+<h3>Use a utility such as tmpwatch</h3>
+<p>
+<a href="https://github.com/jfromaniello">jfromaniello</a>
+<a href="https://groups.google.com/d/msg/nodejs/6KOlfk5cpcM/SCJ9jZZfP-UJ">pointed out</a>
+that using a utility such as
+<a href="http://linux.die.net/man/8/tmpwatch">tmpwatch</a>
+can help with this issue.
+The idea here is to, for example, schedule tmpwatch as a cron job.
+It would remove temp files that have not been accessed in a long enough
+period of time.
+</p>
+<p>
+It's usually a good idea to do this for all servers, just in case.
+But relying on this to clean up bodyParser's mess still suffers from issue #3
+outlined above. Plus, server hard drives are often small, especially when you
+didn't realize you were going to have temp files in the first place.
+</p>
+<p>
+If you ran your cron job every 8 hours for instance, given a hdd with 4 GB
+of free space, an attacker would need an Internet connection with
+145 KB/s upload bandwidth to crash your server.
+</p>
 <h3>Avoid bodyParser and explicitly use the middleware that you need</h3>
 <p>
 If you want to parse json in your endpoint, use <code>express.json()</code> middleware.
@@ -113,4 +135,10 @@ upload, most notably not creating temp files unless you want it to.
 There's also a
 <a href="https://github.com/superjoe30/connect-multiparty">drop-in replacement</a>
 for <code>express.multipart()</code> using multiparty.
+</p>
+<p>
+<a href="https://github.com/mscdex/">mscdex</a>
+<a href="https://groups.google.com/d/msg/nodejs/6KOlfk5cpcM/KJURooRp5dsJ">mentioned</a>
+that he created an alternative named
+<a href="https://github.com/mscdex/busboy">busboy</a>.
 </p>
