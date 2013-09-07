@@ -1,5 +1,13 @@
 <h1>Do Not Use bodyParser with Express.js</h1>
 <p>
+Note: this post has
+<a href="https://github.com/superjoe30/andrewkelley.me/commits/master">been edited</a>
+to take into account
+<a href="https://github.com/visionmedia/">TJ</a>'s
+<a href="https://groups.google.com/forum/#!topic/express-js/iP2VyhkypHo">diligent work</a>
+in response to this.
+</p>
+<p>
 I came across
 <a href="https://plus.google.com/106706438172517329683/posts/4kQiD8L1D36">this Google+ post</a>
 mentioning
@@ -9,15 +17,11 @@ in which someone is quite wisely asking whether the
 enough to use for production applications.
 </p>
 <p>
-This reminds me of one vulnerability in particular that I've been trying to get solved
-but <a href="https://github.com/visionmedia/">the maintainer</a> of express is too busy
-to care. Rightfully so. I mean if you look at how much stuff this guy has to maintain it's
-amazing that he's able to get around to as many issues as he does.
-I just wish he'd recruit some trusted additional maintainers to keep the issue counts
-from getting out of hand.
+This reminds me of one "gotcha" in particular that you could be bitten by if
+you're not careful.
 </p>
 <p>
-Anyway, all servers using
+All servers using
 <a href="http://expressjs.com/api.html#bodyParser">express.bodyParser</a>
 are vulnerable to an attack which creates an unlimited number of temp files
 on the server, potentially filling up all the disk space, which is likely
@@ -85,8 +89,12 @@ This is suboptimal for several reasons:
     every multipart upload that comes its way, creating a temp file, writing it to disk,
     and then deleting the temp file. Why do all that when you don't want to accept uploads?
   </li>
+  <li>
+  As of express 3.4.0 (connect 2.9.0) bodyParser is deprecated.
+  It goes without saying that deprecated things should be avoided.
+  </li>
 </ol>
-<h3>Use a utility such as tmpwatch</h3>
+<h3>Use a utility such as tmpwatch or reap</h3>
 <p>
 <a href="https://github.com/jfromaniello">jfromaniello</a>
 <a href="https://groups.google.com/d/msg/nodejs/6KOlfk5cpcM/SCJ9jZZfP-UJ">pointed out</a>
@@ -108,37 +116,58 @@ If you ran your cron job every 8 hours for instance, given a hdd with 4 GB
 of free space, an attacker would need an Internet connection with
 145 KB/s upload bandwidth to crash your server.
 </p>
+<p>
+TJ pointed out that he also has a utility for this purpose called
+<a href="https://github.com/visionmedia/reap">reap</a>.
+</p>
 <h3>Avoid bodyParser and explicitly use the middleware that you need</h3>
 <p>
 If you want to parse json in your endpoint, use <code>express.json()</code> middleware.
 If you want json and urlencoded endpoint, use <code>[express.json(), express.urlencoded()]</code>
 for your middleware.
-If you want users to upload files to your endpoint, use <code>express.multipart()</code> and be
+</p>
+<p>
+If you want users to upload files to your endpoint, you could use <code>express.multipart()</code> and be
 sure to clean up all the temp files that are created.
+This would still stuffer from problem #3 previously mentioned.
+</p>
+<h3>Use the defer option in the multipart middleware</h3>
+<p>
+When you create your multipart middleware, you can use the <code>defer</code>
+option like this:
+</p>
+<pre>
+<code class="language-javascript">express.multipart({defer: true})</code>
+</pre>
+<p>
+According to the documentation:
+</p>
+<blockquote>
+  defers processing and exposes the multiparty form object as `req.form`.<br>
+  `next()` is called without waiting for the form's "end" event.<br>
+  This option is useful if you need to bind to the "progress" or "part" events, for example.<br>
+</blockquote>
+<p>
+So if you do this you will use <a href="https://github.com/superjoe30/node-multiparty/blob/master/README.md#api">multiparty's API</a> assuming that <code>req.form</code>
+is an instantiated <code>Form</code> instance.
+</p>
+<h3>Use an upload parsing module directly</h3>
+<p>
+<code>bodyParser</code> depends on <code>multipart</code>, which behind the
+scenes uses 
+<a href="https://github.com/superjoe30/node-multiparty">multiparty</a> to
+parse uploads.
 </p>
 <p>
-This still suffers from problem #3 previously mentioned.
-</p>
-<h3>Consider using alternatives to formidable</h3>
-<p>
-<code>bodyParser</code> depends on <code>multipart</code>, which depends on
-<a href="https://github.com/felixge/node-formidable">formidable</a>, which
-is hardcoded to send uploads to a temp directory.
+You can use this module directly to handle the request. In this case you can
+look at 
+<a href="https://github.com/superjoe30/node-multiparty/blob/master/README.md#api">multiparty's API</a>
+and do the right thing.
 </p>
 <p>
-Consider using an alternative, such as
-<a href="https://github.com/superjoe30/node-multiparty">multiparty</a>.
-In addition to solving some bugs, it gives you much more flexibility over your file
-upload, most notably not creating temp files unless you want it to.
-(It also is flexible enough to for example
-<a href="https://github.com/superjoe30/node-multiparty/blob/master/examples/s3.js">stream an upload directly to S3</a>).
-There's also a
-<a href="https://github.com/superjoe30/connect-multiparty">drop-in replacement</a>
-for <code>express.multipart()</code> using multiparty.
-</p>
-<p>
-<a href="https://github.com/mscdex/">mscdex</a>
-<a href="https://groups.google.com/d/msg/nodejs/6KOlfk5cpcM/KJURooRp5dsJ">mentioned</a>
-that he created an alternative named
-<a href="https://github.com/mscdex/busboy">busboy</a>.
+There are also alternatives such as
+<a href="https://github.com/mscdex/busboy">busyboy</a>,
+<a href="https://github.com/chjj/parted">parted</a>,
+and
+<a href="https://github.com/felixge/node-formidable">formidable</a>.
 </p>
