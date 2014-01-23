@@ -1,7 +1,7 @@
 <h1>Do Not Use bodyParser with Express.js</h1>
 <p>
 Note: this post has
-<a href="https://github.com/superjoe30/andrewkelley.me/commit/a5cbf4a7815391dbcc57d6f30f8d330a67487167">been edited</a>
+<a href="https://github.com/andrewrk/andrewkelley.me/commit/a5cbf4a7815391dbcc57d6f30f8d330a67487167">been edited</a>
 to take into account
 <a href="https://github.com/visionmedia/">TJ</a>'s
 <a href="https://groups.google.com/forum/#!topic/express-js/iP2VyhkypHo">diligent work</a>
@@ -148,20 +148,20 @@ According to the documentation:
   This option is useful if you need to bind to the "progress" or "part" events, for example.<br>
 </blockquote>
 <p>
-So if you do this you will use <a href="https://github.com/superjoe30/node-multiparty/blob/master/README.md#api">multiparty's API</a> assuming that <code>req.form</code>
+So if you do this you will use <a href="https://github.com/andrewrk/node-multiparty/blob/master/README.md#api">multiparty's API</a> assuming that <code>req.form</code>
 is an instantiated <code>Form</code> instance.
 </p>
 <h3>Use an upload parsing module directly</h3>
 <p>
 <code>bodyParser</code> depends on <code>multipart</code>, which behind the
 scenes uses 
-<a href="https://github.com/superjoe30/node-multiparty">multiparty</a> to
+<a href="https://github.com/andrewrk/node-multiparty">multiparty</a> to
 parse uploads.
 </p>
 <p>
 You can use this module directly to handle the request. In this case you can
 look at 
-<a href="https://github.com/superjoe30/node-multiparty/blob/master/README.md#api">multiparty's API</a>
+<a href="https://github.com/andrewrk/node-multiparty/blob/master/README.md#api">multiparty's API</a>
 and do the right thing.
 </p>
 <p>
