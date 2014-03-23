@@ -1,0 +1,850 @@
+<h1>My Quest to Build the Ultimate Music Player</h1>
+<p class="lead">
+  2014 Mar 23
+</p>
+<p>
+Over the past few years, I have been slowly but surely building my own music player.
+It's been a wild ride. The codebase has radically changed several times, but is always
+converging on a better music listening experience.
+</p>
+<p>
+In this article I take you along for the ride. I had to learn it all the hard
+way, but you get to learn it all at once while you procrastinate getting back
+to your job.
+</p>
+<p>
+<a href="https://github.com/andrewrk/groovebasin">See the project on GitHub</a>
+</p>
+<h2 id="toc">Table of Contents</h2>
+<ol>
+  <li><a href="#toc">Table of Contents</a></li>
+  <li><a href="#amarok14">I &lt;3 Amarok 1.4</a></li>
+  <li><a href="#loudness-intro">A Short Explanation of Loudness Compensation</a></li>
+  <li><a href="#amarok14-shortcomings">Shortcomings of Amarok 1.4</a></li>
+  <li><a href="#laundry">My Laundry List of Music Player Features</a></li>
+  <li><a href="#partybeat">"PartyBeat"</a></li>
+  <li><a href="#tech">Fumbling Around with Technology</a></li>
+  <li><a href="#growing">Growing Pains</a></li>
+  <li><a href="#rejecting-mpd">Rejecting MPD</a></li>
+  <li><a href="#building-a-backend">Building a Music Player Backend</a></li>
+</ol>
+<h2 id="amarok14">I &lt;3 Amarok 1.4</h2>
+<p>
+Back in 2009, my music player of choice was Amarok 1.4.
+This is by far the best music player I had ever used on Windows, Mac, or Linux,
+especially when combined with the wonderful
+<a href="http://kde-apps.org/content/show.php?content=26073">ReplayGain plugin</a>.
+Here's a screenshot:
+</p>
+<img src="http://s3.amazonaws.com/superjoe/blog-files/quest-build-ultimate-music-player/amarok-1.4-screenshot.png">
+<p>
+One way you can tell how much people loved this music player is by looking at the comments
+on the release blog articles for Amarok <em>2.0</em>, which rebuilt the player from scratch and
+took it in a completely different direction. Arguably, they should have picked a different
+project name and logo. Look at some of these comments, how angry and vitriolic they are:
+<a href="http://amarok.kde.org/en/releases/2.0">2.0</a>
+<a href="http://amarok.kde.org/en/releases/2.1">2.1</a>
+<a href="http://amarok.kde.org/en/releases/2.2">2.2</a>
+</p>
+
+<p>
+Even now, 4 years later, the project is at version 2.8 and the release name is titled
+<a href="http://amarok.kde.org/en/releases/2.8">"Return To The Origin"</a>:
+</p>
+
+<blockquote>Amarok 1.8 is titled "Return To The Origin" as we are bringing back the polish that many users loved from the original 1.x series!</blockquote>
+
+<p>
+That should give you an idea of how much respect Amarok 1.4 commanded.
+</p>
+
+<p>
+Even so, it was not perfect. Notably, the ReplayGain plugin I mentioned above had several
+shortcomings. Before I get into that, however, let me take a detour and explain what
+ReplayGain, or more generally, loudness compensation, is and some of its implications.
+</p>
+
+<h2 id="loudness-intro">A Short Explanation of Loudness Compensation</h2>
+<p>
+Have you ever seen this 2-minute video explaning the Loudness War?
+</p>
+<iframe width="420" height="315" src="https://www.youtube.com/embed/3Gmex_4hreQ" frameborder="0" allowfullscreen></iframe>
+<p>
+The video demonstrates a trend in digital audio mastering where songs are
+highly compressed to sound louder, and how this can compromise the integrity
+of the music.
+</p>
+<p>
+While thinking about building a music player, we're not going to make
+moral judgments about whether or not compression is ruining music for
+everybody. If users want to listen to highly compressed music, that's a
+valid use case. So we have to consider a music library which contains both
+compressed songs and dynamic songs.
+</p>
+<p>
+Here is a song called <em>The Happiest Days of Our Lives</em> by Pink Floyd, mastered in 1979:
+</p>
+<img src="http://s3.amazonaws.com/superjoe/blog-files/quest-build-ultimate-music-player/pink-floyd-waveform.png">
+<p>
+Here is a song called <em>Saying Sorry</em> by Hawthorne Heights, mastered in 2006:
+</p>
+<img src="http://s3.amazonaws.com/superjoe/blog-files/quest-build-ultimate-music-player/saying-sorry-waveform.png">
+<p>
+It is immediately obvious that the second one is much louder than the other.
+So what happens when they are played one after the other in a music player?
+</p>
+<p>
+When the quieter song comes on first, the user reaches for the volume knob to
+turn it up so they can hear. Oops. When the next song begins, a surge of
+adrenaline shoots through the user's body as they scramble to turn the volume
+down. This goes beyond poor usability; this problem can cause hearing loss.
+</p>
+<p>
+The solution is to analyze each song before playing it to figure out how "loud"
+it sounds to humans. Then the music player adjusts the playback volume of each
+track to compensate for the perceived loudness. This way, the user does not
+have to adjust the volume for each track that comes on.
+</p>
+<p>
+The idea is simple enough, but it poses a few subtle challenges.
+</p>
+<p>
+For one, the loudness of an individual track might be different than the
+loudness of the album as a whole. A complete loudness compensation solution
+has to take this into account, both during scanning and playback.
+</p>
+TODO: talk about lazy replaygain scanning?
+TODO: talk about auto-selection between album/track replaygain?
+<p>
+An even trickier problem is avoiding clipping. Music is composed of samples
+which have a fixed range. For example in floating point format, samples can be
+between 0.0 and 1.0. Even quiet songs usually have some samples which peak
+at 1.0, for example on the drums. But we need to turn the volume up on these
+quiet songs to make them sound as loud as the highly compressed ones.
+</p>
+<p>
+If we naïvely increased the volume on such a song, we would end up with
+something like this:
+</p>
+<img src="http://superjoe.s3.amazonaws.com/blog-files/quest-build-ultimate-music-player/500px-Clipping.svg.png">
+<p>
+The solution is not to increase the volume of the quiet song, but to
+<em>decrease</em> the volume of the loud song. In order to do this, we
+introduce an amount called <strong>pre-gain</strong>. All songs are turned down by this
+amount, which gives us the <strong>headroom</strong> we need to turn the quieter ones
+back up.
+</p>
+<p>
+It's not a perfect solution though.
+</p>
+<p>
+The lower the pre-gain, the more the music player will sound quieter than other
+applications on the computer. The higher the pre-gain, the more likely that
+there is not enough headroom to increase the volume of a quiet song enough.
+</p>
+<p>
+The 
+<a href="http://wiki.hydrogenaudio.org/index.php?title=ReplayGain_1.0_specification#Clipping_prevention">ReplayGain 1.0 Specification</a>
+outlines this in more detail.
+</p>
+<p>
+In 2010, the European Broadcasting Union introduced a new standard called
+<a href="https://tech.ebu.ch/loudness">R128</a>. This standard outlines a
+strategy for analyzing media and determining how loud it is. There is a
+<a href="http://wiki.hydrogenaudio.org/index.php?title=Talk:ReplayGain_2.0_specification">motion</a>
+to make ReplayGain 2.0 use this standard.
+</p>
+<p>
+I recommend this excellent Introduction to EBU R128 by Florian Camerer:
+</p>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/iuEtQqC-Sqo" frameborder="0" allowfullscreen></iframe>
+<h2 id="amarok14-shortcomings">Shortcomings of Amarok 1.4</h2>
+<p>
+As much as I loved Amarok 1.4, it did not even attempt to address these
+loudness issues. There is no built-in loudness compensation.
+</p>
+<p>
+The ReplayGain plugin I mentioned earlier was great, but it was limited in
+usefulness:
+</p>
+<ul>
+  <li>
+  It had to scan every time the playlist updated; it didn't cache the data.
+  </li>
+  <li>
+  Each format that you wanted to scan had a different command-line utility
+  which had to be installed. This means that the set of songs that Amarok 1.4
+  could play was completely different than the set of songs that it could scan.
+  </li>
+  <li>
+  It applied the volume changes on a gradient instead of instantly, and timing
+  was not precise. This means that it might erroneously turn up the loudness
+  far too high in the transition time to the next track. This behavior was
+  distracting and sometimes painful.
+  </li>
+  <li>
+  You had to manually decide between track and album mode. This is a pointless
+  chore that the music player should do automatically. Here's a simple algorithm:
+    <ul>
+      <li>
+        If the previous item in the playlist is the previous item from the
+        same album, or the next item in the playlist is the next item from the
+        same album, use the album ReplayGain information.
+      </li>
+      <li>
+        Otherwise, use the track ReplayGain information.
+      </li>
+    </ul>
+  </li>
+</ul>
+<p>
+Aside from the loudness compensation, I had a couple other nits to pick:
+</p>
+<ul>
+  <li>
+  Dynamic Mode was a useful feature that could continually play random songs
+  from the library. But the random selection was too random; it would often
+  queue the same song within a short period of time.
+  </li>
+  <li>
+  If the duration tag was incorrect in a song, or if in was a variable rate MP3,
+  the song would seemingly end when the song had not yet gotten to the end. Or in
+  other words, the reported duration was incorrect and seeking would be broken.
+  </li>
+</ul>
+<p>
+I've spent some time criticizing, now let me be more constructive and actually specify some features
+that I think music players should have.
+</p>
+<h2 id="laundry">My Laundry List of Music Player Features</h2>
+
+<h4>Loudness Compensation using the same scanner as decoder</h4>
+<p>
+This is absolutely crucial. If you want to solve the loudness compensation problem,
+the set of songs which you can decode and play back <em>must</em> be the same set of songs
+which you can scan for loudness. I should never have to manually adjust the volume because
+a different song or album came on.
+</p>
+<h4>If my friends come over, they can control the music playback</h4>
+<p>
+Friends should be able to upload and download music, as well as queue, skip, pause, and play.
+</p>
+<h4>Ability to listen to my music library even when I'm not home</h4>
+<p>
+I should be able to run the music player on my home computer and listen to a real-time
+stream from work, for example.
+</p>
+<h4>Gapless Playback</h4>
+<p>
+Many albums are created in order to be a listening experience that transcends tracks. When
+listening to an album, songs should play seamlessly and without volume changes at the seams.
+This means that loudness scanning must automatically take into account albums.
+</p>
+<h4>Play every format</h4>
+<p>
+You know how when you need to play some obscure video format, you can always rely on
+<a href="http://www.videolan.org/vlc/index.html">VLC</a> to play it? That must be true
+for the ultimate music player as well.
+</p>
+<h4>Keyboard Shortcuts for Everything</h4>
+<p>
+I should be allowed to never touch the mouse when operating the music player.
+</p>
+<h4>Clean up my messy files</h4>
+<p>
+One thing that Amarok 1.4 got right is library organization. It offered a powerful
+way to specify the canonical location for a music file, and then it had an option to
+organize properly tagged music files into the correct file location.
+</p>
+<p>
+I don't remember the exact format, but you could specify a format something like this:
+<pre>
+%artist/%album/%track %title%extension
+</pre>
+</p>
+<h4>Filter Search</h4>
+<p>
+There should be a text box where I can type search terms and instantly see
+the search results live. And it should ignore diacritics.
+For example, I could type "jonsi ik" and match the song <em>Boy Lilikoi</em> by Jónsi.
+</p>
+<h4>Playlist Mode that Automatically Queues Songs</h4>
+<p>
+Some names for this feature are:
+</p>
+<ul>
+  <li>Dynamic Mode</li>
+  <li>Party Mode</li>
+  <li>DJ Mode</li>
+</ul>
+<p>
+The idea is that it automatically queues songs - kind of like a real-time shuffle - so that
+you don't have to manually decide what to listen to.
+</p>
+<p>
+One common flaw found in many players is using a truly random algorithm. With true randomness,
+it will frequently occur that a song which has recently been randomly chosen will be
+randomly chosen again.
+</p>
+<p>
+A more sophisticated algorithm weights songs by how long it has been since they have been
+queued. So any song would be <em>possible</em> to be queued, but songs that have not been
+queued recently are much more likely to be queued. <em>Queue date</em> is chosen rather than
+<em>play date</em> because if a song is queued and the user skips the song, this should still
+count in the weight against it being chosen again.
+</p>
+
+
+<h2 id="partybeat">"PartyBeat"</h2>
+<p>
+It would be a long time before my wishlist of features would become a reality. Meanwhile,
+back in college my buddy made a
+<a href="https://github.com/royvandewater/partybeat">fun little project</a>
+which served as a music player that multiple people could control at the same time
+with a web interface. He installed it in my and my roommate's apartment, and the three of us
+used it in our apartment as a shared jukebox; anarchy deciding what we would listen to
+while we worked on our respective jobs, homework, or projects. We dubbed it "PartyBeat".
+</p>
+
+<p>
+Here's a screenshot:
+</p>
+<img src="http://s3.amazonaws.com/superjoe/blog-files/quest-build-ultimate-music-player/partybeat-screenshot.png" alt="">
+
+<p>
+Some of you might recognize that UI scheme - it is the
+<a href="http://jqueryui.com/themeroller/#!zThemeParams=5d00000100f405000000000000003d8888d844329a8dfe02723de3e5701cc8cb8a0f4166c8f00304d318f2e435fc4b1a60d3060e2d83cad1a27ba4a195c0fdfa6106759866da03494897d32e163c077e94ad990b79693595f02c7d6aaf376f48bc4f93539f1debbdf1780ed214b39f6748c7b573d421fee062f48204a18c1b26257fb226d0648500cb0c23e67232df268d61dac818f59e901c624d3b8108c88253b9a193212a6d3e32f24e4bc27cef59ebfb0c1a8e74578b7f4518439ae6db3f583eb30e285467c5b8653d95420138655a9eab8cc18fa73c21f63d2d5846f9cd5484ef5fff6dd1841a214559944c64a5205d2cbc8553d9d6854b6974de93ec0d3f9ce36440fd405fe46fb43788bd677db8f1fb10ef32accf296607f1f6e759ecb2d1634ebba7a9d5faa212b209822da727ee49bfcdeea8c259bdef74551a1683acf3eef0bb1eb5d406f57fb6681a89b896577b3422535576bea00c42a646e4591e6cb6594d01aa535d9dcb6168d2a367a04eeb9fc7049e16a2a7c76ec027e93976579318875d6ded8fdd916b95191d21fe266fd9e81e3a62e221f2a6d35593cf37ce7d3131adc748c5a4164ab9680a1282158f3700bbd07a1900d4e500e1b1b9176e04d142f838df6a965b9dde8e9b4e0c094931b5d424e5267d3b7b5be3ced768b676cc785c5032ddb8c0df548a5222afe5d2655c7ecb4c32dfb7bfffa14872cc">Trontastic JQuery UI theme</a>.
+</p>
+
+<p>
+This project used <a href="https://www.djangoproject.com/">Django</a> and
+<a href="https://xmms2.org/wiki/Main_Page">xmms2</a> and had a bug-ridden, barren, and clunky web-based user interface. It was so lacking compared to my usual Amarok 1.4 experience,
+yet somehow I could not give up the "shared jukebox" aspect. It was simply too fun to listen
+to music together, regardless of the interface.  
+</p>
+
+<p>
+So finally I decided to build the ultimate music player. It would still have a web-based
+interface, but it would behave like a native application - both in feel and in responsiveness.
+It should be nice enough that even when you want to listen alone it would still be your go-to
+player of choice.
+</p>
+
+<h2 id="tech">Fumbling Around with Technology</h2>
+
+<p>
+In early 2011 I started investigating what technology to use to build this thing.
+I knew that I wanted a backend which could decode many audio formats, do gapless playback,
+and provide some kind of interface for a web server to control it.
+</p>
+
+<p>
+I tinkered a bit with <a href="http://qt-project.org/">Qt</a> and the
+<a href="http://phonon.kde.org/">Phonon</a> framework, but I didn't get as far as
+having a web interface controlling it.
+</p>
+
+<p>
+Eventually I stumbled upon <a href="http://www.musicpd.org/">Music Player Daemon</a>.
+At the time this seemed like a perfect fit, especially since the XMMS2 wiki admitted
+that if they had known that MPD existed when they started the project, they would
+probably have just used it. MPD is a service - it has a config file which tells it,
+among other things, the location of your music library, and then it runs in the
+background, listening on a port (typically 6600), where you can issue commands via
+<a href="http://www.musicpd.org/doc/protocol/">the protocol</a>
+telling it to pause, play, skip, queue, unqueue, and all that jazz.
+</p>
+
+<p>
+The first iteration of "PartyBeat2" was a small
+<a href="https://wiki.python.org/moin/Python2orPython3">Python 3</a>
+server which was merely a proxy between the client-side JavaScript code and MPD, as well
+as a file server to serve the client-side HTML and JavaScript.
+</p>
+<img src="http://superjoe.s3.amazonaws.com/blog-files/quest-build-ultimate-music-player/proxy-diagram.png">
+<p>
+At this point I had a
+basic proof-of-concept. However, progress slowed for a few months as I embarked on a
+<a href="http://andrewkelley.me/post/jmt.html">12-day hiking trip</a> followed immediately
+by the first day of work at Amazon, my first out-of-college job.
+</p>
+<p>
+After a short hiatus, I revisited the project. This was right when
+<a href="http://socket.io/">socket.io</a> was getting a
+lot of hype, and it seemed like the perfect fit for my design. Also I had just given
+<a href="http://coffeescript.org/">Coffee-Script</a> a real chance after snubbing it
+initially. So I ported over the proxy/file server to
+<a href="http://nodejs.org/">Node.js</a> and got a prototype working:
+</p>
+<img src="http://superjoe.s3.amazonaws.com/blog-files/quest-build-ultimate-music-player/groove-basin-screenshot-1.png">
+<img src="http://superjoe.s3.amazonaws.com/blog-files/quest-build-ultimate-music-player/groove-basin-screenshot-2.png">
+<p>
+I even did some design drawings on paper:
+</p>
+<img src="http://superjoe.s3.amazonaws.com/blog-files/quest-build-ultimate-music-player/gb-plans.jpg">
+<p>
+A week of iterating later, I had the basics of a user interface, and a name:
+</p>
+<img src="http://superjoe.s3.amazonaws.com/blog-files/quest-build-ultimate-music-player/groove-basin-ui.png">
+<p>
+I named it <strong>Groove Basin</strong>, after the 
+<a href="http://s3k.ocremix.org/php/media.php">Sonic the Hedgehog 3 Azure Lake Remix</a> by
+<a href="https://soundcloud.com/rayza">Rayza</a>.
+As homage to the original project, I picked a JQuery UI theme for the UI, except this time
+I chose 
+<a href="http://jqueryui.com/themeroller/#!zThemeParams=5d00000100ea05000000000000003d8888d844329a8dfe02723de3e5700bbb34ecf36ce5959f380e613cafa997b39424a52ffc947ae6386d03dcb468a5a7815c8be751cbeb85f52384d8af826a6f2d5c641d90f69837073c156b7dc24847588f6b14a9a8c7dc301e44abe007e94f6e6c92f078aab5be3c4abbf3879228b2a48115b05dacab0962bd9dd50fdaa46f85079285dec07c941276a7d79d1e2858c68ee7737077d76eb62904eeba7420d8e2f0756bb05a5cb873fc3f1db179474d8bde7707611e362f807baa12d96cf4a00cfea47a4a170c167797d3281d6ff47a7c6f852bfdaa702a5524648e1e61e406f77cc5169eec9274af71300eb525d128c2d8aba556d61caefe4b2abaf55ef4b2f70f1edaf2c6daaa85f8c304bc6d43d2433caea8364ea7276fff6617e84b89c13fa1ee02fcf6c8fa464132c7c76f30fb087543e0128a2043f4c04f39e0d649707cef843ee859101dc7411d8d8398b6653ee74859c3dd5b5721d07516d326cb7e0ffde75882a2710bc22f461c210884265e2956c093e42656b76ea338ff9792c14edc072c1415a7ef705f7e4de64cb0cc36a10be95c054a33d08e34e2f90860411c8268bce234650d33ad74d3bdb18cb0e4a1feeaadf1388700395929d0410402353eddf5f6c5ae12555c25e135ba103f22a28bddfef880b025c6b1fe7ff433">Dot Luv</a>.
+</p>
+
+<h2 id="growing">Growing Pains</h2>
+<p>
+Progress continued off and on over the period of about a year.
+As the feature set grew larger and more solidified, the server which used to only be a
+proxy and file server took on more and more responsibilities.
+</p>
+<p>
+Dynamic Mode required that the server watch the main playlist and add songs to the end
+and remove them from the beginning as playback continued from one track to the next.
+</p>
+<p>
+<a href="http://last.fm">Last.fm</a> scrobbling required that the server send scrobbles
+even when the client was not connected.
+</p>
+<p>
+As the server took on more responsibilities, it began to make less and less sense for it
+to directly proxy the MPD protocol for the client.
+</p>
+<p>
+Meanwhile, I became unsatisfied with Coffee-Script. Perhaps digressing too much,
+some of the issues I took with it were:
+</p>
+<h4>Error-prone variable scoping</h4>
+<p>
+If you accidentally name a local variable the same as one in an outer scope, you mutate
+the value of the outer one
+rather than shadowing it. For example if you <code>path = require('path')</code> and
+then later innocently use <code>path</code> as the name of a local variable, you're
+in for a wild ride:
+</p>
+<pre>
+<code class="language-coffeescript">path = require('path')
+
+# ...
+
+makePathName = (song) -&gt;
+  path = song.title
+  if song.artist
+    path = song.artist + '/' + path
+  return path
+
+# ...
+
+basename = makePathName(title: 'hello')
+path.join(musicDir, basename) # TypeError: Object  has no method 'join'</code>
+</pre>
+<h4>Messy and inefficient output code</h4>
+The JavaScript that Coffee-Script produces is frankly quite ugly. Specifically, it does
+not reuse temporary variables, so you end up with <code>_len</code>, <code>_len2</code>,
+<code>_len3</code> and so on:
+
+<pre>
+<code class="language-coffeescript">arr = [1, 2, 3]
+f = -&gt;
+  for x in arr
+    console.log x
+  for x in arr
+    console.log x
+  for x in arr
+    console.log x</code>
+</pre>
+
+<p>
+Produces:
+</p>
+
+<pre>
+<code class="language-javascript">(function() {
+  var arr, f;
+
+  arr = [1, 2, 3];
+
+  f = function() {
+    var x, _i, _j, _k, _len, _len1, _len2, _results;
+    for (_i = 0, _len = arr.length; _i &lt; _len; _i++) {
+      x = arr[_i];
+      console.log(x);
+    }
+    for (_j = 0, _len1 = arr.length; _j &lt; _len1; _j++) {
+      x = arr[_j];
+      console.log(x);
+    }
+    _results = [];
+    for (_k = 0, _len2 = arr.length; _k &lt; _len2; _k++) {
+      x = arr[_k];
+      _results.push(console.log(x));
+    }
+    return _results;
+  };
+
+}).call(this);</code>
+</pre>
+
+<p>
+If you look closely at that output JavaScript code, you'll notice something even
+more annoying. Every function returns a value unless you explicitly put a
+<code>return</code> statement at the end. This can have surprising side effects.
+In our example code, Coffee-Script decided to put the output of <code>console.log</code>
+into an array. This is a
+<a href="https://github.com/jashkenas/coffee-script/issues/2477">controversial feature</a>,
+but it is not going to change.
+</p>
+
+<h4>Inability to declare functions</h4>
+<p>
+In Coffee-Script you cannot
+declare a function; you can only assign an anonymous function to a variable. This
+makes it impossible to do what I consider to be the
+<a href="js-callback-organization.html">cleanest organization of callback code</a>.
+</p>
+
+<h3>Playing with coco</h3>
+<p>
+What I should have done at this time is gone back to plain old JavaScript. But I was
+still seduced by the features that compile-to-js languages bring to the table. So
+instead I switched the codebase over to <a href="https://github.com/satyr/coco">coco</a>.
+This project
+<a href="https://github.com/satyr/coco/wiki/wtfcs">solved some of Coffee-Script's problems</a>
+including all the ones I listed above, and
+<a href="https://github.com/satyr">satyr</a> seemed to have a better understanding of
+compiler design than
+<a href="https://github.com/jashkenas">jashkenas</a>
+given that coco ran <a href="https://github.com/satyr/coco/wiki/improvements#size--speed">twice as fast</a>.
+</p>
+<p>
+coco lasted about a year before I removed it. satyr started taking coco in a
+pretty wild direction, adding things like <code>c = a-b</code> compiling to
+<code>c = aB</code> rather than <code>c = a - b</code>. The syntax became so
+complicated that if you made a typo in the source code, you had more of a chance
+of introducing a subtle bug than of introducing a syntax error.
+</p>
+<p>
+In the end, though, the biggest factor, and this goes for Coffee-Script as well
+as coco as well as any other compile-to-js language, is that it alienates
+possible contributors.
+</p>
+<p>
+As I gained more experience
+with Node.js, I realized that most developers used JavaScript directly instead
+of a compile-to-js language.
+By using a language that significantly fewer people were familiar
+with, I made Groove Basin a less attractive project to contribute to.
+</p>
+<h2 id="rejecting-mpd">Rejecting MPD</h2>
+<p>
+All this compile-to-js stuff was meta work; it had no fundamental effect on
+how well the music player performed. Meanwhile there lurked a more substantial
+problem with the way Groove Basin was designed.
+</p>
+<p>
+At first, MPD seemed like a great choice. It is in most popular linux distributions'
+package managers, including the <a href="http://www.raspberrypi.org/">Raspberry Pi</a>.
+It had been around
+for long enough that there are multiple free iPhone and Android apps available to
+act as a controller. It can play most audio formats. But in the end, there are some
+critical issues that prevent it from being the right choice for Groove Basin.
+</p>
+<h3>Demands control of your music library</h3>
+<p>
+The only way to play a song is to add it to the library, and then queue it. If you want
+to implement your own music database and use MPD as a simple playlist for playback, you
+still have to keep MPD's library up to date too.
+</p>
+<h3>ReplayGain support is laughable</h3>
+<p>
+MPD supports only APEv2 ReplayGain tags. This must be some kind of joke, because obviously
+not every format supports APEv2 tags, and most ReplayGain scanners actually write to
+ID3v2 tags. But more importantly, MPD misses the entire point. Relying on external
+ReplayGain scanning makes the set of songs you can <em>play</em> different from the
+set of songs you can <em>scan</em>. This leads to an inconsistent and rather unpleasant
+listening experience. Further, relying on tags makes it impossible to store ReplayGain
+data for songs in the library in a container format which does not support tags.
+And finally... what the hell? Is the user supposed to set up their own cron job to scan
+their music collection? How about the music player app does it for the user, silently,
+in the background, no questions asked?
+</p>
+<p>
+TODO
+   - volume normalization is evil (and provide audio examples)
+</p>
+<h3>No tag editing</h3>
+<p>
+After demanding control of your music library, MPD provides no way to edit tags of a
+song.
+</p>
+<p>
+If you're going to read and write audio tags, the same library should be in charge of both.
+Otherwise, like the ReplayGain problem I outlined earlier, you end up with discrepancies in
+what you can read and write.
+</p>
+<h3>Protocol is severely limited and poorly designed</h3>
+<p>
+MPD is controlled via the <a href="http://musicpd.org/doc/protocol/">MPD Protocol</a> that can be used to control
+playback and query information. For the most part, all the information that you need is
+there. However the protocol is massively inefficient.
+</p>
+<p>
+For one example, consider the use case of a client which wants to keep an index of the
+music database. That is, it wants to have an updated copy of all the music metadata, so
+that it can do things such as queuing a random track, or allowing the user to quickly
+search for a song. In this use case, the mpd client would have to request a copy of
+the music database index, and then subscribe to a notification when the database changes.
+Once that notification is sent, the client would then have to re-request the entire index
+again, an operation which can be upwards of 3MB of data for a music library with 9000 songs.
+A better behavior would be if the notification included a delta of exactly what changed,
+so that the client could keep their copy updated without that massive payload.
+</p>
+<p>
+This same problem exists with the main playlist - you have to request the entire playlist
+instead of receiving a delta of what changed.
+</p>
+<p>
+Another problem with the MPD protocol is that although it is intended to support multiple
+concurrent users controlling the same server, it is riddled with race conditions.
+</p>
+<p>
+For example, it packages multiple state updates into one. Consider the status update message:
+</p>
+<pre>
+status
+volume: 100
+repeat: 0
+random: 0
+single: 0
+consume: 1
+playlist: 0
+playlistlength: 23
+xfade: 0
+mixrampdb: 0.000000
+mixrampdelay: nan
+state: play
+song: 10
+songid: 0
+nextsong: 11
+nextsongid: 1
+time: 69:224
+elapsed: 68.985
+bitrate: 192
+audio: 44100:24:2
+OK
+</pre>
+<p>
+Now imagine that one user adjusts volume while another user toggles the repeat state.
+Because volume and repeat state are sent in the same message, at least one user will
+receive a status message with incorrect information before receiving a new one with
+correct information. In practice, this means that the UI on clients will momentarily
+display bogus state when things change which makes clients feel "glitchy".
+</p>
+<p>
+As another example, audio files are indexed by filename. This means that if you rename a file,
+every client which had a handle on that file now has an invalid handle. Even after you download
+the entire new music library index, there is no way to tell which file got renamed.
+</p>
+<p>
+One final example. Consider the use case where the user presses the volume up button several
+times quickly.
+TODO short .gif or video demonstrating this.
+The problem is that you receive an event saying that the status has changed. The only
+reasonable response to this is to ask what the new status is. The new status tells us that the volume
+TODO explain this better
+is at 3. Now, there are 2 more messages that will arrive soon enough telling us that the new volume is
+4 and then 5. But before they arrive, the UI is updated, the user sees an invalid value, and when they
+press volume up again, it is from the invalid base position of 3 instead of 5.
+Consider a simpler alternative which solves this problem. When the client sends a volume update,
+the server accepts the message and then only notifies other clients that the volume changed.
+</p>
+<h3>Various audio playback glitches</h3>
+<p>
+MPD supports something called "stickers". These are simple pieces of data MPD
+clients can add to tracks to use for their own purposes. Groove Basin took
+advantage of stickers to store "last queued date" on each track in order to
+implement its random song selection which favors songs you haven't seen recently.
+Josh discovered that MPD apparently makes 2 stupid decisions with regard to stickers:
+</p>
+<ol>
+  <li>It uses the same thread for audio playback as it uses for updating sticker information.</li>
+  <li>It somehow is so inefficient at updating sticker information that it causes audio
+      playback to skip a few tenths of a second if you try to do it for upwards of 8 songs at once.
+  </li>
+</ol>
+<p>
+The end result here was that audio playback would glitch if you queued an album.
+</p>
+<p>
+ * glitchy playback on some songs, it keeps skipping (TODO ask josh for specifics)
+</p>
+<p>
+Now it is possible to submit patches to MPD to get these bugs fixed. But if I'm going to work on
+that layer of the problem, why not put that effort toward a project which better fulfills
+Groove Basin's goals?
+</p>
+
+<h3>We want more control over the HTTP audio stream</h3>
+<p>
+In the best case scenario, the server would know which of the connected browser clients
+are actually streaming music. With MPD in control of the HTTP audio stream, we have no
+access to or control over the HTTP request. We can only provide it. Also it requires
+running on a separate port from the main web interface which is its own can of worms.
+</p>
+<p>
+We also want more control over the audio stream. When a song is skipped, for example,
+the best thing to do is flush the audio buffer so that the buffer can start filling up
+with data from the new song. This is precisely what happens in media players that play
+locally on your computer. However, with MPD this is not possible. When you skip a song
+you still have to wait for the audio stream to catch up.
+</p>
+<p>
+Having direct control over the HTTP audio stream also enables us to experiment with some
+more creative ideas. For example, Josh wants to utilize the WebAudio API to invent his
+own streaming protocol that aims to have 0 latency when you pause, play, seek, or skip.
+The idea is that the server would send snippets of relevant audio data to the client; not
+only for the current song but for the next song as well. If the user skipped to the next
+track, the client would instantly begin playback with the data it received for that track.
+Meanwhile the server would scramble to give the client the next track and any more audio it
+predicts will be needed.
+</p>
+
+<h2 id="building-a-backend">Building a Music Player Backend</h2>
+<p>
+So, how hard could it be to build my own music player backend?
+Seems like it would be a matter of solving these things:
+</p>
+<ul>
+  <li>Use a robust library for audio decoding. How about the same one that VLC uses?</li>
+  <li>Support adding and removing entries on a playlist for gapless playback.</li>
+  <li>Support pause, play, and seek.</li>
+  <li>Per-playlist-item gain adjustment so that perfect loudness compensation can be
+      implemented.
+  </li>
+  <li>Support loudness scanning to make it easy to implement for example ReplayGain.</li>
+  <li>Support playback to a sound device chosen at runtime.</li>
+  <li>Support transcoding audio into another format so a player can implement, for example,
+      HTTP streaming.
+  </li>
+  <li>Give raw access to decoded audio buffers just in case a player wants to do something
+      other than one of the built-in things.
+  </li>
+</ul>
+<p>
+After reading up a little bit on the insane open-source soap-opera that was the forking of
+<a href="http://www.libav.org/">libav</a> from
+<a href="http://www.ffmpeg.org/">ffmpeg</a> (here are two sides to the story:
+<a href="http://libav.org/about.html">libav side</a>,
+<a href="http://blog.pkh.me/p/13-the-ffmpeg-libav-situation.html">ffmpeg side</a>
+TODO add the other neutral article I found recently
+), I went
+with libav simply because it is what is in the
+<a href="http://www.debian.org/">Debian</a> and
+<a href="http://www.ubuntu.com/">Ubuntu</a> package managers, and one
+of my goals is to get this music player backend into their package managers.
+</p>
+<p>
+Several iterations later, I now have
+<a href="https://github.com/andrewrk/libgroove">libgroove</a>,
+a C library with what I think is a
+TODO check this link
+<a href="https://github.com/andrewrk/libgroove/tree/2.0.2/include/groove.h">pretty solid API</a>.
+How it works:
+</p>
+TODO diagram of architecture
+make the diagram be titled "libgroove design"
+<p>
+The API user creates a GroovePlaylist which spawns its own thread and is
+responsible for decoding audio. The user adds and removes items at will from
+this playlist. They can also call pause, play, and seek on the playlist.
+As the playlist decodes audio, where does the decoded audio go?
+This is where those sinks come in.
+</p>
+<p>
+A <strong>sink</strong> is a metaphor of a real-life sink that you would find
+in a bathroom or kitchen. Sinks can fill up with water, and unless the water
+is drained the sink will continue to fill until it overflows.
+Likewise, in audio processing, a sink is an object which collects audio buffers
+in a queue.
+</p>
+<p>
+In libgroove, decoded audio is stored in reference-counted buffer objects
+and passed to each connected sink. Each sink does whatever processing it needs to
+do and then calls "unref" on the buffer. Typically each sink will have its own
+thread which hungrily waits for buffers and devours them as fast as possible.
+However the playlist is also decoding audio as fast as possible and pushing
+it onto each sink's queue. It is quite possible, that a sink's queue fills up
+faster than it can process the buffers.
+When the playlist discovers that all its
+sinks are full, it puts its thread to sleep, waiting to be woken up by a sink
+which has drained enough. 
+</p>
+<p>
+libgroove provides some higher-level sink types in addition to the basic sink.
+Each higher level sink runs in its own thread and is built using the basic sink.
+These include:
+</p>
+<ul>
+  <li><strong>playback sink</strong> - opens a sound device and
+  sends the decoded audio to it. This sink fills up with <em>events</em>
+  that signal when the sink has started playing the next track, or when
+  a buffer underflow occurs.
+  </li>
+  <li><strong>encoder sink</strong> - encodes the audio buffers it receives
+  and fills up with encoded audio buffers. These encoded buffers can then
+  be written to a file or streamed over the network, for example.
+  </li>
+  <li><strong>loudness scanner sink</strong> - uses the EBU R 128 standard to 
+  detect loudness. This sink fills up with information about each track, including
+  loudness, peak, and duration.
+  </li>
+</ul>
+TODO diagram of decode head and play head
+
+ * include C example of transcoding
+
+ * bundling libav and libebur128
+
+ * want to make a debian/ubuntu package but can't until libav releases because of their
+   policy on depending on other packages. (TODO link to the policy)
+ * so I made a PPA (TODO publish to the PPA)
+
+
+ * node-groove
+ * integration with groove basin
+Worked on it a bunch, including at Hacker School.
+
+
+* set up a live demo
+  - first fix the upload bug
+
+
+Perhaps this post should have been titled "My <strong>Ongoing</strong> Quest to Build the Ultimate Music Player", since we are still working toward the
+<a href="https://github.com/andrewrk/groovebasin/issues?milestone=1&state=open">1.0.0 milestone</a>.
+Even so, you can try out
+<a href="TODO">the demo</a>
+right now. It will probably be pretty chaotic and/or unresponsive if there is a fair amount
+of traffic to this blog post, as it's not designed for a large number of anonymous people to
+use it together; it's more for groups of 10 or less people who actually know each other in
+person.
+
+* can we mention blend.io using libgroove?
+
+* trying to get albertz/music-player to use libgroove
+
+* link to albertz/what is a music player
+
+* mention keese
+
+* show off one of the easter eggs? and hint about the other one but don't tell?
+
+* goals for raspberry pi for upcoming car trip
+
+
+TODO: 
+ * talk about the huge win that was a0c6d8c36d91 (streaming improvements)
+ * talk about my contributions to libav
+ * talk about joining debian multimedia team and packaging up libebur128 and libgroove

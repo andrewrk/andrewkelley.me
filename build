@@ -19,6 +19,12 @@ swig.init({
 
 var postList = [
   {
+    filename: "quest-build-ultimate-music-player.html",
+    content: null,
+    date: new Date("2014-03-23T18:01:50.067Z"),
+    title: "My Quest to Build the Ultimate Music Player",
+  },
+  {
     filename: "do-not-use-bodyparser-with-express-js.html",
     content: null,
     date: new Date("2013-09-06T22:37:07.244Z"),
