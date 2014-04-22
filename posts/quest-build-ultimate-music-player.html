@@ -1,6 +1,6 @@
 <h1>My Quest to Build the Ultimate Music Player</h1>
 <p class="lead">
-  2014 April 19
+  2014 April 21
 </p>
 <p>
 Over the past few years, I have been slowly but surely building my own music player.
@@ -67,7 +67,7 @@ ReplayGain, or more generally, loudness compensation, is and some of its implica
 
 <h2 id="loudness-intro">A Short Explanation of Loudness Compensation</h2>
 <p>
-Have you ever seen this 2-minute video explaning the Loudness War?
+Have you ever seen this 2-minute video explaining the Loudness War?
 </p>
 <iframe width="420" height="315" src="https://www.youtube.com/embed/3Gmex_4hreQ" frameborder="0" allowfullscreen></iframe>
 <p>
@@ -114,8 +114,6 @@ For one, the loudness of an individual track might be different than the
 loudness of the album as a whole. A complete loudness compensation solution
 has to take this into account, both during scanning and playback.
 </p>
-TODO: talk about lazy replaygain scanning?
-TODO: talk about auto-selection between album/track replaygain?
 <p>
 An even trickier problem is avoiding clipping. Music is composed of samples
 which have a fixed range. For example in floating point format, samples can be
@@ -225,6 +223,11 @@ This is absolutely crucial. If you want to solve the loudness compensation probl
 the set of songs which you can decode and play back <em>must</em> be the same set of songs
 which you can scan for loudness. I should never have to manually adjust the volume because
 a different song or album came on.
+</p>
+<p>
+Ideally, loudness scanning should occur lazily when items are added to the
+play queue and then the generated values should be saved so that the loudness
+scanning would not have to be repeated.
 </p>
 <h4>If my friends come over, they can control the music playback</h4>
 <p>
@@ -546,7 +549,7 @@ how well the music player performed. Meanwhile there lurked a more substantial
 problem with the way Groove Basin was designed.
 </p>
 <p>
-At first, MPD seemed like a great choice. It is in most popular linux distributions'
+At first, MPD seemed like a great choice. It is in most popular Linux distributions'
 package managers, including the <a href="http://www.raspberrypi.org/">Raspberry Pi</a>.
 It had been around
 for long enough that there are multiple free iPhone and Android apps available to
@@ -571,10 +574,6 @@ data for songs in the library in a container format which does not support tags.
 And finally... what the hell? Is the user supposed to set up their own cron job to scan
 their music collection? How about the music player app does it for the user, silently,
 in the background, no questions asked?
-</p>
-<p>
-TODO
-   - volume normalization is evil (and provide audio examples)
 </p>
 <h3>No tag editing</h3>
 <p>
@@ -652,19 +651,15 @@ the entire new music library index, there is no way to tell which file got renam
 <p>
 One final example. Consider the use case where the user presses the volume up button several
 times quickly.
-TODO short .gif or video demonstrating this.
+</p>
+<p>
 The problem is that you receive an event saying that the status has changed. The only
 reasonable response to this is to ask what the new status is. The new status tells us that the volume
-TODO explain this better
-is at 3. Now, there are 2 more messages that will arrive soon enough telling us that the new volume is
+is at 3. Now, there are 2 more messages that will arrive soon telling us that the new volume is
 4 and then 5. But before they arrive, the UI is updated, the user sees an invalid value, and when they
 press volume up again, it is from the invalid base position of 3 instead of 5.
 Consider a simpler alternative which solves this problem. When the client sends a volume update,
-the server accepts the message and then only notifies other clients that the volume changed.
-</p>
-<p>
-TODO:
-* mention keese and how it solves sorting issue
+the server accepts the message and then only notifies <em>other</em> clients that the volume changed.
 </p>
 <h3>Various audio playback glitches</h3>
 <p>
@@ -715,7 +710,7 @@ more creative ideas. For example, recently I updated the HTTP stream so that whe
 it receives a burst of 200 KB of encoded audio, followed by a steady stream of exactly as
 many bytes per second as the encoded audio contains.
 This gives clients enough data to begin playback immediately. You may have noticed this
-behavior when you watch a YouTube video - the bufferering bar loads very quickly at first, but
+behavior when you watch a YouTube video - the buffering bar loads very quickly at first, but
 then slows down to a crawl once playback begins.
 </p>
 <p>
@@ -1000,19 +995,118 @@ libgroove can be submitted to
 <a href="http://www.debian.org/releases/sid/">unstable</a>, where it will move into
 testing, and then finally be released to all of Debian!
 </p>
+<p>
+After a few more months of work, I'd like to package up Groove Basin itself. This way, the entire
+installation process could be just an <code>apt-get install</code> away.
+</p>
 <h2 id="libav-contributions">Contributions to libav</h2>
 <p>
- * TODO compand
- * TODO flac/vorbis
- * TODO fix wma seek issue
+While working on libgroove several issues came up which led me to contribute code to
+<a href="http://libav.org">libav</a>. The first thing I noticed is that if you asked
+libav for a decoder based on the .ogg extension, by default it would use the FLAC
+encoder. While it is true that .ogg files can contain FLAC audio, the
+<a href="http://xiph.org/">Xiph.org</a> Foundation
+<a href="http://wiki.xiph.org/index.php/MIME_Types_and_File_Extensions">recommends</a>
+that .ogg only be used for Ogg Vorbis audio files.
 </p>
-
+<p>
+Unfortunately, the built-in vorbis encoder is considered to not meet quality standards
+so the
+<a href="http://git.libav.org/?p=libav.git;a=commitdiff;h=b0c2c097e422b9e10a7d856582f8321d28af821e">compromise</a>
+that we ended up implementing is to default .ogg to vorbis when libvorbis
+is available, and default to FLAC when it is not. Fortunately for Debian and Ubuntu users,
+the libav package that is available in the repository does in fact depend on libvorbis.
+</p>
+<p>
+Another time I had to dig into libav code was when I discovered that some of my .wma songs would have
+<a href="https://bugzilla.libav.org/show_bug.cgi?id=567">broken, glitchy playback if you seek to the beginning</a>.
+Seeking to any other location seemed to work fine.
+When I investigated this behavior, I noticed that it occurred in avplay, the command line audio playback tool
+that ships with libav. I proposed
+<a href="http://git.libav.org/?p=libav.git;a=commitdiff;h=0c082565965258dca143767cc6cb25e38b6e9ea3">a patch</a>
+which short circuited seeking to 0 and skipped all the complicated seeking code.
+Janne Grunau not only committed my patch but he took the opportunity to revisit the ASF seeking code, tidy it up,
+and fix a bunch of issues.
+</p>
+<p>
+I'm pretty happy about this patch landing in libav as it makes a whole set of songs able to be played for me that
+previously could not. A pretty important "feature" for a music player.
+</p>
+<p>
+Finally, while investigating the best way to implement loudness compensation, I realized that simply adjusting
+the volume on an audio stream is not enough. If the song is so quiet that the amount we would have to turn
+the volume gain up to exceeds 1.0, we would end up with clipping. The solution to this is to detect whether
+it is possible that the song could clip and if so, use a compressor instead of a simple volume gain:
+</p>
+<img src="http://superjoe.s3.amazonaws.com/blog-files/quest-build-ultimate-music-player/compressor.svg">
+<p>
+A compressor, otherwise known as a limiter, allows us to turn the volume up without clipping. The tradeoff is
+that it distorts the audio signal. This is why we prefer a simple volume gain, but fall back to a compressor
+if we need to turn the volume up high enough. This is what VLC does when you turn the volume up past 100% into
+the red.
+</p>
+<p>
+In order to have this functionality, I
+<a href="http://git.libav.org/?p=libav.git;a=commitdiff;h=ba21499648bbffc5518a41dc01a51449b9871088">ported</a>
+the "compand" audio filter from
+<a href="http://ffmpeg.org">ffmpeg</a>.
+Now libgroove has the ability to turn the volume up beyond 100% like VLC, although I don't recommend doing it.
+It's much better for sound quality to turn the gain up on your physical speakers.
+</p>
 <h2 id="conclusion">Conclusion</h2>
 <p>
 3 years, 6 months from <code>git init</code> and Groove Basin is still under active development.
 Here's what the UI looks like today:
 </p>
 <img src="http://superjoe.s3.amazonaws.com/blog-files/quest-build-ultimate-music-player/groovebasin-screenshot-latest.png">
+<p>
+Some of the features that it provides are:
+</p>
+<ul>
+  <li>
+    Fast, responsive UI. It feels like a desktop app, not a web app.
+  </li>
+  <li>
+    Dynamic playlist mode which automatically queues random songs, favoring
+    songs that have not been queued recently.
+  </li>
+  <li>
+    Drag and drop upload. Drag and drop playlist editing. Rich keyboard
+    shortcuts.
+  </li>
+  <li>
+    Lazy multi-core
+    <a href="http://tech.ebu.ch/loudness">EBU R128 loudness scanning</a>
+    (tags compatible with
+    <a href="http://wiki.hydrogenaudio.org/index.php?title=ReplayGain_1.0_specification">ReplayGain</a>)
+    and automatic switching between track and album mode.
+    <a href="http://www.youtube.com/watch?v=iuEtQqC-Sqo">"Loudness Zen"</a>
+  </li>
+  <li>
+    Streaming support. You can listen to your music library - or share it
+    with your friends - even when you are not physically near your home
+    speakers.
+  </li>
+  <li>
+    MPD protocol support. This means you already have a selection of
+    <a href="http://mpd.wikia.com/wiki/Clients">clients</a>
+    which integrate with Groove Basin.
+    For example
+    <a href="https://github.com/abarisain/dmix">MPDroid</a>.
+  </li>
+  <li>
+    <a href="http://www.last.fm/">Last.fm</a> scrobbling.
+  </li>
+  <li>
+    File system monitoring. Add songs anywhere inside your music directory
+    and
+    they instantly appear in your library in real time.
+  </li>
+  <li>
+    Supports GrooveBasin Protocol on the same port as MPD Protocol - use the
+    `protocolupgrade` command to upgrade.
+  </li>
+</ul>
 <p>
 If you like you can try out the web interface client of Groove Basin on the
 <a href="http://demo.groovebasin.com/">live demo</a> site.
@@ -1033,7 +1127,16 @@ The roadmap moving forward looks like this:
   <li>Finalize GrooveBasin protocol spec</li>
 </ol>
 <p>
+Groove Basin still has lots of <a href="https://github.com/andrewrk/groovebasin/issues">issues</a>
+but it's already a solid music player and it's only improving over time.
+</p>
+<p>
 At some point I plan to write a tutorial article detailing exactly how to get this application
 running on a <a href="http://www.raspberrypi.org/">Raspberry Pi</a>. It's mostly straightforward
 but there are enough "gotchas" here and there that I think it could be a useful article.
+</p>
+<p>
+Feel free to star or watch the
+<a href="https://github.com/andrewrk/groovebasin">Groove Basin GitHub repository</a>
+if you want to keep track of progress.
 </p>
