@@ -9,6 +9,8 @@ var path = require('path')
 var VIEWS_DIR = "views";
 var BUILD_DIR = "www";
 
+var RSS_MAX_COUNT = 10;
+
 mkdirp.sync(BUILD_DIR);
 
 swig.init({
@@ -125,14 +127,16 @@ function readPostContentAndGenerateRss() {
     image_url: "https://s3.amazonaws.com/superjoe/blog-files/profile-48x58.jpg",
     author: "Andrew Kelley",
   });
-  postList.forEach(function(post) {
+  postList.forEach(function(post, i) {
     post.content = fs.readFileSync(path.join("posts", post.filename), {encoding: 'utf8'});
-    feed.item({
-      title: post.title,
-      description: post.content,
-      url: "http://andrewkelley.me/post/" + post.filename,
-      date: post.date,
-    });
+    if (i < RSS_MAX_COUNT) {
+      feed.item({
+        title: post.title,
+        description: post.content,
+        url: "http://andrewkelley.me/post/" + post.filename,
+        date: post.date,
+      });
+    }
   });
   fs.writeFileSync(path.join(BUILD_DIR, "rss.xml"), feed.xml());
 }
