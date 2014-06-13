@@ -21,6 +21,12 @@ swig.init({
 
 var postList = [
   {
+    filename: "laptop-review-bonobo-extreme.html",
+    content: null,
+    date: new Date("2014-06-12T23:25:14.054Z"),
+    title: "Laptop Review - Bonobo Extreme",
+  },
+  {
     filename: "quest-build-ultimate-music-player.html",
     content: null,
     date: new Date("2014-04-22T17:39:04.442Z"),
