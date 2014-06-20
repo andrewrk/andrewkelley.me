@@ -21,6 +21,12 @@ swig.init({
 
 var postList = [
   {
+    filename: "raspberry-pi-music-player-server.html",
+    content: null,
+    date: new Date("2014-06-20T00:58:08.071Z"),
+    title: "Turn Your Raspberry Pi into a Music Player Server",
+  },
+  {
     filename: "laptop-review-bonobo-extreme.html",
     content: null,
     date: new Date("2014-06-12T23:25:14.054Z"),

@@ -1,0 +1,593 @@
+<h1>Turn Your Raspberry Pi Into a Music Player Server</h1>
+<p class="lead">2014 June 19</p>
+<p>
+A few months ago I published
+<a href="quest-build-ultimate-music-player.html">My Quest to Build the Ultimate Music Player</a>,
+where I described some of the trials and tribulations that led to
+<a href="http://groovebasin.com/">Groove Basin</a>, an open-source
+music player server that I've been building off and on for almost 4 years.
+</p>
+<p>
+It ships with a web-based client, which looks like this:
+</p>
+<a href="http://superjoe.s3.amazonaws.com/blog-files/raspberry-pi-music-player-server/groovebasin-screenshot.png">
+<img src="http://superjoe.s3.amazonaws.com/blog-files/raspberry-pi-music-player-server/groovebasin-screenshot.png" alt="Groove Basin screenshot">
+</a>
+<p>
+You can also tinker with the <a href="http://demo.groovebasin.com/">live demo version</a>.
+</p>
+<p>
+If you install this on a Raspberry Pi, you can attach speakers to it and use it as a music
+player which you can control remotely, and you can remotely listen to your music by pressing
+the "stream" button in the browser.
+</p>
+<p>
+Before I get into it, however, I would like to point out that if you're deciding whether or
+not to get a Raspberry Pi, the answer is <strong>no</strong>.
+The Raspberry Pi is overhyped - this is why I'm
+writing this guide - and there are much better alternatives. I'll mention one here,
+the <a href="http://beagleboard.org/Products/BeagleBone+Black">Beagle Bone Black</a>.
+</p>
+<p>
+Why you should get this instead:
+</p>
+<ul>
+  <li>Faster CPU and Memory
+    <ul>
+      <li>1GHz processor instead of 700MHz</li>
+      <li>DDR3 instead of SDRAM</li>
+    </ul>
+  </li>
+  <li>
+    <p>
+   It can run Debian or Ubuntu armhf directly instead of having to run something like
+   Raspian. It's silly that Raspbian exists when there is already an armhf port of Debian.
+   If you just install normal armhf Ubuntu on the Beagle Bone Black then this entire guide
+   is unnecessary and you can just do
+    </p>
+
+   <pre>
+# apt-add-repository ppa:andrewrk/libgroove
+# apt-get update
+# apt-get install libgroove-dev</pre>
+
+   <p>
+   And presto, you're done.
+   </p>
+
+   <p>
+   In fact, libgroove is in
+   <a href="http://packages.qa.debian.org/libg/libgroove.html">Debian Testing</a> and
+   <a href="https://launchpad.net/ubuntu/utopic/+source/libgroove">Ubuntu Utopic Unicorn</a>,
+   so in a year or so when these distributions are updated,
+   you won't even need to add the extra PPA.
+   </p>
+  </li>
+  <li>
+   Debian <a href="https://wiki.debian.org/RaspberryPi">officially recommends <em>against</em> the Raspberry Pi</a>, notably because there is non-free software required to run it. Debian
+   specifically endorses the Beagle Bone Black.
+  </li>
+</ul>
+
+<p>
+If you are like me, and you unfortunately purchased a Raspberry Pi before you became
+educated about better options, then you'll have to jump through some hoops to get
+this working. This article will hold your hand and guide you through all the hoops so
+that you don't have to waste time figuring it out yourself.
+</p>
+<p>
+I'll start this guide at the point where you have a fresh Raspberry Pi and don't even
+have an operating system yet. If you're past this point then
+<a href="#install-groove-basin">skip ahead</a>.
+</p>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+  <li><a href="#table-of-contents">Table of Contents</a></li>
+  <li><a href="#install-raspbian">Install Raspbian and get SSH Access</a></li>
+  <li><a href="#install-groove-basin">Install Groove Basin</a></li>
+</ol>
+<h2 id="install-raspbian">Install Raspbian and get SSH Access</h2>
+<p>
+Head over to the
+<a href="http://www.raspberrypi.org/downloads/">Raspberry Pi downloads page</a>
+and grab the Raspbian Debian Wheezy torrent (or download directly if you're not l33t).
+</p>
+<p>
+Unzip to get the .img file out and flash it to the biggest SD card you have. You'll want
+lots of room for music!
+</p>
+<p>
+I'm on Ubuntu - all I had to do was right-click on the .img file in nautilus,
+Open With, Disk Image Writer:
+</p>
+<img alt="Disk Image Writer" src="http://superjoe.s3.amazonaws.com/blog-files/raspberry-pi-music-player-server/disk-image-writer.png">
+<p>
+I'm sure there are plenty of ways to get the job done, this was easiest for me.
+</p>
+<p>
+Once that's done, find a keyboard, monitor, and HDMI cable so that you can see
+what you're doing. Our goal is to get SSH access going as soon as possible so
+that we can work on the Pi without plugging things into it other than the power
+and network cables.
+</p>
+<p>
+Once the Pi boots up for the first time it gives you a menu of things you can do.
+Here's what I did:
+</p>
+<ul>
+  <li>Expand the file system to fit the full SD card.</li>
+  <li>Set pi user password.</li>
+  <li>Advanced Options, enable SSH server.</li>
+</ul>
+<p>
+Now let's set it up so that it always binds to the same IP address when it boots up.
+These are the settings I used, obviously you should tweak them to your network's needs:
+</p>
+<pre>sudo vi /etc/network/interfaces</pre>
+<p>
+Replace <code>iface eth0 inet dhcp</code> with:
+</p>
+<pre>
+auto eth0
+iface eth0 inet static
+    address 192.168.1.99
+    netmask 255.255.255.0
+    gateway 192.168.1.1</pre>
+
+<p>
+Now we can unplug the TV and keyboard, we won't be needing this junk anymore.
+Plug that Raspberry Pi into your network and power it on!
+</p>
+<p>
+On your normal computer that you're used to using, you can now ssh to the Pi,
+something like this:
+</p>
+<pre>ssh pi@192.1.68.1.99</pre>
+<p>
+I like to put an entry in my <code>~/.ssh/config</code> file like this:
+</p>
+<pre>
+host pi
+hostname 192.168.1.99
+user pi</pre>
+<p>
+It makes you type in your password, but we can fix that:
+</p>
+<pre>ssh-copy-id pi</pre>
+<p>
+Now connecting to the Pi is as simple as <code>ssh pi</code>.
+</p>
+<p>
+The first thing to do here is update all the outdated packages to the latest.
+</p>
+<pre>
+$ sudo apt-get update
+$ sudo apt-get dist-upgrade</pre>
+<p>
+Hmm, what's that I see there?
+</p>
+<pre>
+...
+Unpacking replacement raspberrypi-bootloader
+...
+</pre>
+<p>
+Bootloader replaced huh? Better reboot to make sure that still works.
+</p>
+<p>
+Alright, at this point we are able to ssh into our Raspberry Pi and all the packages
+that come installed are fully updated.
+</p>
+<h2 id="install-groove-basin">Install Groove Basin</h2>
+<p>
+First let's install some packages:
+</p>
+<pre>$ sudo apt-get install htop vim git cmake screen</pre>
+<p>
+I recommend that you do this work in something like
+<a href="http://www.gnu.org/software/screen/">screen</a> or
+<a href="http://tmux.sourceforge.net/">tmux</a> so that if the connection is dropped,
+the commands we're running will continue. Also this allows us to disconnect and go
+do something else while the Pi crunches numbers.
+</p>
+<p>
+I'm going to explain how to do this one step at a time for clarity. However, note that
+there are essentially 3 compilations that will take a very long time, so if you want to
+start those 3 in parallel and then walk away from the computer for 8 hours or so, you
+can skip around this guide and start them all in parallel. Those 3 things are the
+<code>make</code> steps of:
+</p>
+<ul>
+  <li>SDL2</li>
+  <li>libav</li>
+  <li>Node.js</li>
+</ul>
+<h3>libgroove, Part 1</h3>
+<p>
+Get the libgroove source code and create a build folder inside of the source:
+</p>
+<pre>
+$ cd
+$ git clone https://github.com/andrewrk/libgroove
+$ cd libgroove
+$ mkdir build
+$ cd build</pre>
+<p>
+Let's build in debug mode so that if we happen upon any errors we can get a useful stack trace.
+</p>
+<p>
+Note, you can skip the following step - it takes a minute or two to complete,
+this particular command is just for your information, and I have reproduced the
+output below:
+</p>
+<pre>$ cmake .. -DCMAKE_BUILD_TYPE=Debug</pre>
+<pre>
+Installation Summary
+--------------------
+* Install Directory            : /usr/local
+* Build libgroove              : missing dependencies
+* Build libgrooveplayer        : missing dependencies
+* Build libgrooveloudness      : missing dependencies
+* Build libgroovefingerprinter : yes
+
+Bundled Dependencies
+--------------------
+* SDL2                         : ready to build
+* libav                        : missing dependencies, see below
+* libebur128                   : ready to build
+
+System Dependencies
+-------------------
+* C99 Compiler                 : OK
+* threads                      : OK
+* SDL2                         : not found - will use bundled version
+* ebur128                      : not found - will use bundled version
+* chromaprint                  : not found
+* libavformat                  : not found - will use bundled version
+* libavcodec                   : not found - will use bundled version
+* libavfilter                  : not found - will use bundled version
+* libavutil                    : not found - will use bundled version
+* yasm                         : not found
+* bzip2                        : not found
+* mp3lame                      : not found
+* zlib                         : OK</pre>
+
+<p>
+It's missing these libraries:
+</p>
+<ul>
+  <li>chromaprint</li>
+  <li>libebur128</li>
+  <li>SDL2</li>
+  <li>libav</li>
+</ul>
+<p>
+We could let libgroove install with the bundled dependencies, but it will be easier to
+just install those dependencies on the system first. Let's do that.
+</p>
+<h3>chromaprint</h3>
+<p>
+Luckily chromaprint is in the repository already:
+</p>
+<pre>$ sudo apt-get install libchromaprint-dev</pre>
+<h3>libebur128</h3>
+<p>
+Next we compile the easy one, libebur128.
+</p>
+<pre>
+$ cd
+$ git clone https://github.com/jiixyj/libebur128
+$ cd libebur128
+$ mkdir build
+$ cd build
+$ cmake .. -DCMAKE_BUILD_TYPE=Debug</pre>
+<p>
+Oops, looks like we're missing a dependency:
+</p>
+<pre>
+-- checking for module 'speexdsp'
+--   package 'speexdsp' not found</pre>
+
+<p>
+Better install that.
+</p>
+<pre>$ sudo apt-get install libspeexdsp-dev</pre>
+<p>Let's try that configure line again:</p>
+<pre>$ cmake .. -DCMAKE_BUILD_TYPE=Debug</pre>
+<pre>
+-- checking for module 'speexdsp'
+--   found speexdsp, version 1.2rc1
+-- speexdsp library dirs: 
+-- speexdsp cflags: 
+-- speexdsp include dirs: 
+-- speexdsp libraries: speexdsp
+-- speexdsp ldflags: 
+-- status          found / disabled --
+-- queue.h:        yes     using system copy of queue.h
+-- speexdsp:       yes     no 
+-- not building tests, set ENABLE_TESTS to ON to enable
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/pi/libebur128/build</pre>
+
+<p>
+That's better.
+</p>
+<p>
+Now compile and then install the code:
+</p>
+<pre>
+$ make
+$ sudo make install</pre>
+
+<pre>
+[ 50%] Built target ebur128
+[100%] Built target ebur128_static
+Install the project...
+-- Install configuration: "Debug"
+-- Up-to-date: /usr/local/include/ebur128.h
+-- Installing: /usr/local/lib/arm-linux-gnueabihf/libebur128.so.1.0.1
+-- Installing: /usr/local/lib/arm-linux-gnueabihf/libebur128.so.1
+-- Installing: /usr/local/lib/arm-linux-gnueabihf/libebur128.so
+-- Installing: /usr/local/lib/arm-linux-gnueabihf/libebur128.a</pre>
+
+<p>
+Argh, it put the library files in <code>/usr/local/lib/arm-linux-gnueabihf/</code>
+due to a <a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=739876i">bug</a>
+in the Debian cmake package.
+</p>
+
+<p>
+Let's hack around that:
+</p>
+<pre>
+$ sudo mv /usr/local/lib/arm-linux-gnueabihf/* /usr/local/lib/
+$ sudo rmdir /usr/local/lib/arm-linux-gnueabihf
+$ sudo ldconfig</pre>
+
+<h3>SDL2</h3>
+<p>
+Next let's get SDL2 going. What's wrong with the SDL that comes with the Raspberry Pi?
+Well it's version 1.2 and libgroove depends on version 2.
+</p>
+
+<p>
+Find the URL for the source code of the latest SDL2 version on the
+<a href="https://www.libsdl.org/download-2.0.php">SDL download page</a>.
+</p>
+
+<pre>
+$ cd
+$ wget https://www.libsdl.org/release/SDL2-2.0.3.tar.gz
+$ tar xvf SDL2-2.0.3.tar.gz 
+$ cd SDL2-2.0.3/</pre>
+
+<p>
+SDL needs an audio backend to work, so we install that now, before the configure command:
+</p>
+
+<pre>$ sudo apt-get install libasound2-dev</pre>
+
+<p>
+We only need the audio features of SDL2 and in fact some of the video stuff can cause
+compilation problems. So we'll disable all the features we don't need when we configure.
+</p>
+
+<pre>
+$ ./configure --enable-audio --disable-video --disable-render --disable-events --disable-joystick --disable-haptic --disable-power --disable-file --disable-timers --disable-loadso --disable-cpuinfo</pre>
+
+<p>
+This could take a while, but when it's done you should see a line like this:
+</p>
+
+<pre>Audio drivers   : disk dummy oss alsa(dynamic)</pre>
+
+<p>
+It's important that you have an audio driver other than disk, dummy, and oss.
+</p>
+
+<pre>$ make</pre>
+
+<p>
+Find something to do, this is going to take upwards of an hour to complete.
+Or if you want to slap your poor Raspberry Pi into submission, this would be
+the time to skip around in this guide and get libav compiling at the same time.
+But again, I'm going to pretend that you're doing this sequentially and let you
+deal with thinking about how to skip around the article.
+</p>
+
+<p>
+So at this point that long compilation process succeeded and we're ready to install SDL2:
+</p>
+
+<pre>$ sudo make install</pre>
+
+<h3>libav</h3>
+
+<p>Let's go back to your home folder (or wherever you decided to do this):</p>
+
+<pre>$ cd</pre>
+
+<p>
+Grab the URL to the latest libav 10 release from the
+<a href="http://www.libav.org/download.html">libav downloads page</a>.
+</p>
+
+<pre>
+$ wget http://www.libav.org/releases/libav-10.1.tar.gz
+$ tar xvf libav-10.1.tar.gz 
+$ cd libav-10.1/</pre>
+
+<p>
+Let's get some prerequisites out of the way and then start configuring:
+</p>
+
+<pre>
+$ sudo apt-get install libmp3lame-dev libvorbis-dev
+$ ./configure --enable-shared --enable-debug --disable-static --enable-gpl --enable-libmp3lame --enable-libvorbis</pre>
+
+<p>
+Again the Pi is going to have to work <em>really hard</em> to complete this configure command,
+especially if you're simultaneously compiling SDL2, so don't worry if it takes a minute or two.
+</p>
+
+<pre>$ make</pre>
+
+<p>
+This is going to take upwards of 8 hours. Seriously, I'd start this one and then go to bed.
+If you're trying to start all the compilations simultaneously, you might also want to start
+Node.js compiling as well.
+</p>
+
+<p>After libav compilation succeeds:</p>
+
+<pre>$ sudo make install</pre>
+
+<p>
+Now we've finally finished installing libgroove's dependencies and we can finally move on to
+installing libgroove itself.
+</p>
+
+<h3>libgroove, Part 2</h3>
+
+<p>
+So at this point, you've waited a very long time and the Pi has successfully finished
+compiling libav and SDL2, and you have installed both of them. If this is not true, then
+you need to figure out why and fix it before progressing with this guide.
+</p>
+
+<pre>
+$ sudo ldconfig
+$ cd ~/libgroove/build/
+$ cmake .. -DCMAKE_BUILD_TYPE=Debug</pre>
+<pre>
+Installation Summary
+--------------------
+* Install Directory            : /usr/local
+* Build libgroove              : yes
+* Build libgrooveplayer        : yes
+* Build libgrooveloudness      : yes
+* Build libgroovefingerprinter : yes
+
+Bundled Dependencies
+--------------------
+* SDL2                         : using system library
+* libav                        : using system libraries
+* libebur128                   : using system library
+
+System Dependencies
+-------------------
+* C99 Compiler                 : OK
+* threads                      : OK
+* SDL2                         : OK
+* ebur128                      : OK
+* chromaprint                  : OK
+* libavformat                  : OK
+* libavcodec                   : OK
+* libavfilter                  : OK
+* libavutil                    : OK</pre>
+
+<p>
+Ah that output looks much better than before.
+</p>
+
+<pre>
+$ make
+</pre>
+
+<p>
+This make should be relatively quick.
+</pre>
+
+<pre>
+$ sudo make install
+$ sudo ldconfig</pre>
+
+<p>
+At this point we have the necessary libraries installed:
+</p>
+
+<pre>$ ls /usr/local/lib/</pre>
+<pre>
+libavcodec.so           libebur128.a                     libgroove.so.4
+libavcodec.so.55        libebur128.so                    libgroove.so.4.1.0
+libavcodec.so.55.34.1   libebur128.so.1                  libSDL2-2.0.so.0
+libavdevice.so          libebur128.so.1.0.1              libSDL2-2.0.so.0.2.1
+libavdevice.so.54       libgroove.a                      libSDL2.a
+libavdevice.so.54.0.0   libgroovefingerprinter.a         libSDL2.la
+libavfilter.so          libgroovefingerprinter.so        libSDL2main.a
+libavfilter.so.4        libgroovefingerprinter.so.4      libSDL2.so
+libavfilter.so.4.2.0    libgroovefingerprinter.so.4.1.0  libSDL2_test.a
+libavformat.so          libgrooveloudness.a              libswscale.so
+libavformat.so.55       libgrooveloudness.so             libswscale.so.2
+libavformat.so.55.12.0  libgrooveloudness.so.4           libswscale.so.2.1.2
+libavresample.so        libgrooveloudness.so.4.1.0       pkgconfig
+libavresample.so.1      libgrooveplayer.a                python2.7
+libavresample.so.1.1.0  libgrooveplayer.so               python3.2
+libavutil.so            libgrooveplayer.so.4             site_ruby
+libavutil.so.53         libgrooveplayer.so.4.1.0
+libavutil.so.53.3.0     libgroove.so</pre>
+
+<h3>Node.js</h3>
+<p>
+Now we need
+<a href="http://nodejs.org">Node.js</a>. Get the latest stable source code from the
+<a href="http://nodejs.org/download/">downloads page</a>.
+</p>
+
+<pre>
+$ cd
+$ wget http://nodejs.org/dist/v0.10.29/node-v0.10.29.tar.gz
+$ tar xvf node-v0.10.29.tar.gz 
+$ cd node-v0.10.29/
+$ ./configure
+$ make</pre>
+
+<p>
+This compilation process will take several hours.
+</p>
+<p>
+Once it's done:
+</p>
+
+<pre>$ sudo make install</pre>
+
+<h3>Groove Basin</h3>
+<p>
+Now it is time to start Groove Basin, the music player server.
+</p>
+
+<pre>
+$ cd
+$ git clone https://github.com/andrewrk/groovebasin
+$ cd groovebasin/
+$ npm run build</pre>
+
+<p>
+This step can take several minutes - it downloads and compiles Groove Basin dependencies.
+</p>
+
+<p>
+Let's make the music directory if we don't already have one.
+</p>
+
+<pre>$ mkdir ~/music/</pre>
+
+<p>
+Copy all your music there at this point if you have any.
+</p>
+
+<pre>$ node lib/server.js</pre>
+
+<p>
+Now you should be up and running. If you want to change configuration options,
+kill the server with Ctrl+C and edit <code>config.js</code>.
+</p>
+<p>
+Enjoy! Feel free to follow
+<a href="https://github.com/andrewrk/groovebasin">Groove Basin on GitHub</a>,
+<a href="https://github.com/andrewrk/groovebasin/issues/new">file a bug report or feature request</a>, or join <code>#libgroove</code> on irc.freenode.org to discuss or get help troubleshooting.
+</p>
+<p>
+Pull requests are welcome, especially ones that make <a href="https://github.com/andrewrk/groovebasin.com">groovebasin.com</a> look nicer.
+</p>
