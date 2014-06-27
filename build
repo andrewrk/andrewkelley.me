@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-var path = require('path')
-  , fs = require('fs')
-  , swig = require('swig')
-  , RSS = require('rss')
-  , mkdirp = require('mkdirp')
+var path = require('path');
+var fs = require('fs');
+var swig = require('swig');
+var RSS = require('rss');
+var mkdirp = require('mkdirp');
 
 var VIEWS_DIR = "views";
 var BUILD_DIR = "www";
