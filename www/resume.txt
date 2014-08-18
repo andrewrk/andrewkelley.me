@@ -1,0 +1,129 @@
+Andrew Kelley <superjoe30@gmail.com> http://andrewkelley.me/
+
+Fun facts:
+
+ * Most comfortable in a Linux environment.
+ * Passionate about open source software.
+ * Generalist. Comfortable with back-end architecture, to creating custom
+   algorithms, to designing intuitive user interfaces.
+ * Fond of video game development and music production.
+ * Dvorak typist.
+
+Formal education:
+
+ * BS in Computer Science from Arizona State University
+ * Hacker School, Fall 2013
+
+Projects and research:
+
+ Groove Basin - http://groovebasin.com/
+ - Open source music player server with a web-based user interface.
+ - My quest to build the ultimate music player
+   (http://andrewkelley.me/post/quest-build-ultimate-music-player.html)
+ - Project still active after 4 years with a growing user base.
+ - Progress underway to get it officially included in Debian and Ubuntu.
+
+ libgroove - https://github.com/andrewrk/libgroove
+ - Audio dispatching library. Music player backend. Used by Groove Basin.
+ - Included in Debian and Ubuntu. I am the upstream author as well as the
+   package maintainer.
+
+ chem - https://github.com/andrewrk/chem
+ - Canvas-based 2D game engine and toolchain optimized for rapid development.
+ - Example game, made in 48 hours:
+   http://s3.amazonaws.com/superjoe/temp/face-the-music/index.html
+
+ mineflayer - https://github.com/andrewrk/mineflayer/
+ - Create Minecraft bots with a powerful, stable, and high level JavaScript API.
+ - Navigate using A* pathfinding (https://www.youtube.com/watch?v=O6lQdmRz8eE)
+ - Scaffold to get to destination (https://www.youtube.com/watch?v=jkg6psMUSE0)
+ - Dueling archer bot (https://www.youtube.com/watch?v=x3AL5T4er7Y)
+
+ jamulator - http://andrewkelley.me/post/jamulator.html
+ - Statically recompiling NES games into native executables with LLVM and Go
+ - Generates a native binary for Super Mario Bros 1
+   (https://www.youtube.com/watch?v=Wn32zePbFpc)
+
+ Debian Package Maintainer
+ - Responsible for creating and maintaining 26 Debian packages
+ - https://qa.debian.org/developer.php?login=superjoe30@gmail.com
+
+Paid work history:
+
+ Blend.io - November 2013 to August 2014
+   * Worked remotely as a consultant.
+   * Built a streaming parser for Ableton and FL Studio project files which
+     reports what plugins and samples are used.
+   * Built a tool to simultaneously create an MP3 preview and waveform JSON of
+     input audio.
+   * Built an open source module that synchronizes an entire directory to or
+     from S3: https://github.com/andrewrk/node-s3-client
+
+ Indaba Music - April 2012 to June 2013
+   * One of the four developers working on a website which hosts remix
+     competitions for musicians.
+   * Replaced part of the legacy rails app with a media processing server; wrote
+     a fast waveform generator; cut media processing down from 67 seconds
+     average to 8-11 seconds.
+   * Wrote open source deployment tools for our new servers such as naught,
+     which provides daemonization, clustering, and resuscitation.
+   * Created and prototyped the "party room" product idea in my 10% time which
+     the company is now using in their main product. Uses game theory / game
+     psychology to increase engagement.
+
+ Amazon - August 2011 to March 2012
+   * Seller Success Team. We helped merchants be better merchants.
+   * Instrumented my team's front end code so that our metrics for latency
+     included client-side ajax calls.
+   * Refactored my team's legacy main application without breaking anything.
+     Deleted thousands of lines of code.
+   * First of my team to adopt Git. Presented on how and why Amazon is
+     switching to Git and showed how I was able to work more efficiently using
+     the Git workflow.
+
+ "Repatriator" - January 2010 to January 2011
+   * Freelance work for the Dean of Liberal Arts and Sciences at ASU.
+   * Created a system for entomologists to study specimens remotely via the
+     Internet using Python 3, C++, Qt, and custom-built third party hardware.
+   * After the client's support contract was up, I found a developer to replace
+     myself, and I provide support to him.
+
+ "Note-Taker Project" - September 2009 to December 2010
+   * Grant-funded research project at ASU.
+   * Created a tablet application to provide low-vision students the ability to
+     take notes at the pace of fully-sighted students using Qt, C++, Windows
+     API, Microsoft OneNote, a C# plugin, and a custom-built pan/tilt/zoom
+     camera.
+   * Pioneered UI design in addition to backend code.
+   * The project won first place at Microsoft's 2010 international Imagine Cup
+     Touch and Tablet Accessibility Competition.
+
+ "Camlift Controller" - August 2009 to October 2009
+   * Joined my room-mate on a freelance job to create .NET software to control a
+     Canon Camera on a motorized lift.
+   * Switched code base to a Qt-based cross-platform solution, allowing client
+     to sell his product to Mac and Linux users.
+   * After the client's support contract was up, I found a developer to replace
+     myself, and I provide support to him.
+
+ Lockheed Martin - June 2007 to August 2008
+   * Internship for two summers.
+   * Expedited progress on a project by implementing a C++ stream processing
+     library according to a spec along with unit tests.
+   * Figured out how to step-debug with Eclipse on Weblogic servlets and shared
+     the knowledge with my teammates.
+
+ "Diversity Boutique" - April 2007 to November 2007
+   * Freelance work
+   * Created an online presence for a bricks-and-mortar clothes store using Perl
+     and MySQL.
+   * Helped client create a merchant account and make her first online sale.
+
+ Progressive Roofing - June 2006 to June 2007
+   * Worked in the summer when school was out.
+   * Project managers were spending a total of 6 man-hours per week transforming
+     estimates to fit a specific work order Excel format. I wrote a VBA macro
+     which brought this time down to 30 minutes per week.
+   * The dispatch department used legacy software which required an average of
+     10 man-hours per week to operate. I created a .NET application to replace
+     it, saving 8 man hours per week.
