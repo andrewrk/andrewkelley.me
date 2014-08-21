@@ -25,6 +25,8 @@ Projects and research:
 
  libgroove - https://github.com/andrewrk/libgroove
  - Audio dispatching library. Music player backend. Used by Groove Basin.
+ - Resulted in me sending several patches to libav and ffmpeg which are now
+   merged and released.
  - Included in Debian and Ubuntu. I am the upstream author as well as the
    package maintainer.
 
