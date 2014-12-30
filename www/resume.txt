@@ -2,6 +2,8 @@ Andrew Kelley <superjoe30@gmail.com> http://andrewkelley.me/
 
 Fun facts:
 
+ * 14 years of programming experience.
+ * I write code nearly every single day of my life.
  * Most comfortable in a Linux environment.
  * Passionate about open source software.
  * Generalist. Comfortable with back-end architecture, to creating custom
@@ -21,7 +23,8 @@ Projects and research:
  - My quest to build the ultimate music player
    (http://andrewkelley.me/post/quest-build-ultimate-music-player.html)
  - Project still active after 4 years with a growing user base.
- - Progress underway to get it officially included in Debian and Ubuntu.
+ - Included in Debian and Ubuntu. I am the upstream author as well as the
+   package maintainer.
 
  libgroove - https://github.com/andrewrk/libgroove
  - Audio dispatching library. Music player backend. Used by Groove Basin.
@@ -47,12 +50,16 @@ Projects and research:
    (https://www.youtube.com/watch?v=Wn32zePbFpc)
 
  Debian Package Maintainer
- - Responsible for creating and maintaining 26 Debian packages
+ - Responsible for creating and maintaining 34 Debian packages.
  - https://qa.debian.org/developer.php?login=superjoe30@gmail.com
+
+ Node.js Modules
+ - Creator and maintainer of 78 packages.
+ - https://www.npmjs.com/~superjoe
 
 Paid work history:
 
- Blend.io - November 2013 to August 2014
+ Blend.io - November 2013 to December 2014
    * Worked remotely as a consultant.
    * Built a streaming parser for Ableton and FL Studio project files which
      reports what plugins and samples are used.
