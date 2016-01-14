@@ -18,6 +18,9 @@ Education:
 
 Projects and research:
 
+ Zig - https://github.com/andrewrk/zig
+ - Programming language intended to replace C.
+
  Genesis DAW - http://genesisdaw.org/
  - Work-in-progress Digital Audio Workstation.
 
@@ -55,12 +58,6 @@ Projects and research:
  Node.js Modules
  - Creator and maintainer of 79 packages.
  - https://www.npmjs.com/~superjoe
-
- mineflayer - https://github.com/andrewrk/mineflayer/
- - Create Minecraft bots with a powerful, stable, and high level JavaScript API.
- - Navigate using A* pathfinding (https://www.youtube.com/watch?v=O6lQdmRz8eE)
- - Scaffold to get to destination (https://www.youtube.com/watch?v=jkg6psMUSE0)
- - Dueling archer bot (https://www.youtube.com/watch?v=x3AL5T4er7Y)
 
 Paid work history:
 
