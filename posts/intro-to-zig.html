@@ -382,7 +382,7 @@ the switch expression:
 </p>
 <pre><code class="language-zig">fn do_a_thing(str: []u8) {
     switch (parse_u64(str, 10)) {
-        error.Ok =&gt; handle_ok_case(),
+        error.Ok =&gt; |number| do_something_with_number(number),
         error.Overflow =&gt; {
             // handle overflow...
         },
