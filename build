@@ -21,6 +21,12 @@ swig.init({
 
 var postList = [
   {
+    filename: "intro-to-zig.html",
+    content: null,
+    date: new Date("2016-02-08T16:07:35.206Z"),
+    title: "Introduction to the Zig Programming Language",
+  },
+  {
     filename: "raspberry-pi-music-player-server.html",
     content: null,
     date: new Date("2014-06-20T00:58:08.071Z"),

@@ -1,0 +1,624 @@
+<script>
+  Prism.languages['zig'] = Prism.languages.extend('clike', {
+    'keyword': /\b(fn|import|c_import|const|var|extern|volatile|export|pub|noalias|inline|struct|enum|goto|break|return|continue|asm|defer|if|else|switch|while|for|null|undefined|true|false)\b/,
+    'property': /\b(bool|i8|u8|i16|u16|i32|u32|i64|u64|isize|usize|f32|f64|void|unreachable|type|error|c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong)\b/,
+  });
+</script>
+<h1>Introduction to the Zig Programming Language</h1>
+<p class="lead">
+  2016 February 08
+</p>
+<p>
+The past few months I took a break from working on
+<a href="http://genesisdaw.org/">Genesis Digital Audio Workstation</a>
+to work, instead, on creating a
+<a href="https://github.com/andrewrk/zig">new programming language</a>.
+</p>
+<p>
+I am nothing if not ambitious, and my goal is to create a new programming
+language that is <em>more pragmatic than C</em>. This is like to trying to be
+more evil than the devil himself.
+</p>
+<p>
+So, in order, these are the priorities of Zig:
+</p>
+<ol>
+  <li><strong>Pragmatic</strong>: At the end of the day, all that really matters is
+    whether the language helped you do what you were trying to do better than any other
+    language.
+  </li>
+  <li><strong>Optimal</strong>: The most natural way to write a program should result
+    in top-of-the-line runtime performance, equivalent to or better than C. In places
+    where performance is king, the optimal code should be clearly expressible.
+  </li>
+  <li><strong>Safe</strong>: Optimality may be sitting in the driver's seat, but
+    safety is sitting in the passenger's seat, wearing its seatbelt, and asking nicely
+    for the other passengers to do the same.
+  </li>
+  <li><strong>Readable</strong>: Zig prioritizes reading code over writing it.
+    Avoid complicated syntax. Generally there should be a canonical way to do
+    everything.
+  </li>
+</ol>
+<h2 id="toc">Table of Contents</h2>
+<ol>
+  <li><a href="#toc">Table of Contents</a></li>
+  <li><a href="#design-decisions">Design Decisions</a>
+    <ol>
+    <li><a href="#debug-release">Widely Diverging Debug and Release Builds</a></li>
+    <li><a href="#c-abi">C ABI Compatibility</a></li>
+    <li><a href="#maybe-type">Maybe Type Instead of Null Pointer</a></li>
+    <li><a href="#error-type">The Error Type</a></li>
+    <li><a href="#stdlib">Alternate Standard Library</a></li>
+    <li><a href="#preprocessor-alternatives">Alternatives to the Preprocessor</a></li>
+    </ol>
+  </li>
+  <li><a href="#tetris">Milestone: Tetris Implemented in Zig</a></li>
+  <li><a href="#resources">Resources</a></li>
+</ol>
+<h2 id="design-decisions">Design Decisions</h2>
+<h3 id="debug-release">Widely Diverging Debug and Release Builds</h3>
+<p>
+  Zig has the concept of a <em>debug build</em> vs a <em>release build</em>.
+  Here is a comparison of priorities for debug mode vs release mode:
+</p>
+<table>
+  <tr>
+    <th></th>
+    <th style="width: 44%;">Debug Mode</th>
+    <th>Release Mode</th>
+  </tr>
+  <tr>
+    <th>Time Spent Compiling</th>
+    <td>
+      Code must compile fast. Use all manner of caching, shared objects,
+      multithreading, whatever must be done in order to produce a binary
+      as soon as possible.
+    </td>
+    <td>
+      Making a release build could take orders of magnitude longer than
+      a debug build and that is acceptable.
+    </td>
+  </tr>
+  <tr>
+    <th>Runtime Performance</th>
+    <td>
+      Could be order of magnitude slower than release build and that is
+      acceptable.
+    </td>
+    <td>
+      Optimal performance. Aggressive optimizations. Take the time needed
+      to produce a highly efficient runtime efficiency. No compromises here.
+    </td>
+  </tr>
+  <tr>
+    <th>Undefined Behavior</th>
+    <td>
+      What <em>would</em> be undefined behavior in a release build, is defined
+      behavior in a debug build, and that is for the runtime to trap. That is,
+      crash. This includes things like array bounds checking, integer overflow,
+      reaching unreachable code. Not all undefined behavior can be caught, but
+      a comfortably large amount can.
+    </td>
+    <td>
+      Undefined behavior in release mode has unspecified consequences, and this
+      lets the optimizer produce optimal code.
+    </td>
+  </tr>
+</table>
+</p>
+  The build mode is available to the source code via the expression
+  <code>@comile_var("is_release")</code>. 
+</p>
+<h3 id="c-abi">Complete C ABI Compatibility</h3>
+<p>
+Part of being pragmatic is recognizing C's existing success. Interop
+with C is crucial. Zig embraces C like the mean older brother who you are a little
+afraid of but you still want to like you and be your friend.
+</p>
+<p>
+In Zig, functions look like this:
+</p>
+<pre><code class="language-zig">fn do_something() {
+    // ...
+}</code></pre>
+<p>
+The compiler is free to inline this function, change its parameters,
+and otherwise do whatever it wants, since this is an internal function.
+However if you decide to export it:
+</p>
+<pre><code class="language-zig">export fn do_something() {
+    // ...
+}</code></pre>
+<p>
+Now this function has the C ABI, and the name shows up in the symbol table
+verbatim. Likewise, you can declare an external function prototype:
+</p>
+<pre><code class="language-zig">extern fn puts(s: &amp;const u8) -&gt; c_int;</code></pre>
+<p>
+In Zig, like in C, you typically do not create a "wrapper" or "bindings" to
+a library, you just use it. But if you had to type out or generate all the
+extern function prototypes, this would be a binding. That is why Zig has the ability
+to parse .h files:
+</p>
+<pre><code class="language-zig">c_import {
+    @c_include("stdio.h");
+}</code></pre>
+<p>
+This exposes all the symbols in stdio.h - including the macros - to the zig program,
+and then you can call puts or printf just like you would in C.
+</p>
+<p>
+One of Zig's use cases is slowly transitioning a large C project to Zig.
+Zig can produce simple .o files for linking against other .o files, and it can
+also generate .h files based on what you export. So you could write part of your
+application in C and part in Zig, link all the .o files together and everything
+plays nicely with each other.
+</p>
+<h3 id="maybe-type">Maybe Type Instead of Null Pointer</h3>
+<p>
+One area that Zig provides safety without compromising efficiency or
+readability is with the maybe type.
+</p>
+<p>
+The question mark symbolizes the maybe type. You can convert a type to a maybe
+type by putting a question mark in front of it, like this:
+</p>
+<pre><code class="language-zig">// normal integer
+const normal_int: i32 = 1234;
+
+// maybe integer
+const maybe_int: ?i32 = 5678;</code></pre>
+<p>
+Now the variable <code>maybe_int</code> could be an i32, or null.
+</p>
+<p>
+Instead of integers, let's talk about pointers. Null references are the source of many runtime
+exceptions, and even stand accused of being
+<a href="https://www.lucidchart.com/techblog/2015/08/31/the-worst-mistake-of-computer-science/">the worst mistake of computer science</a>.
+</p>
+<p>Zig does not have them.</p>
+<p>
+Instead, you can use a maybe pointer. This secretly compiles down to a normal pointer,
+since we know we can use 0 as the null value for the maybe type. But the compiler
+can check your work and make sure you don't assign null to something that can't be null.
+</p>
+<p>
+Typically the downside of not having null is that it makes the code more verbose to
+write. But, let's compare some equivalent C code and Zig code.
+</p>
+<p>
+Task: call malloc, if the result is null, return null.
+</p>
+<p>C code</p>
+<pre><code class="language-c">// malloc prototype included for reference
+void *malloc(size_t size);
+
+struct Foo *do_a_thing(void) {
+    char *ptr = malloc(1234);
+    if (!ptr) return NULL;
+    // ...
+}</code></pre>
+<p>Zig code</p>
+<pre><code class="language-zig">// malloc prototype included for reference
+extern fn malloc(size: size_t) -&gt; ?&amp;u8;
+
+fn do_a_thing() -&gt; ?&amp;Foo {
+    const ptr = malloc(1234) ?? return null;
+    // ...
+}</code></pre>
+<p>
+  Here, Zig is at least as convenient, if not more, than C. And, the type of "ptr"
+  is <code>&amp;u8</code> <em>not</em> <code>?&amp;u8</code>. The <code>??</code> operator
+  unwrapped the maybe type and therefore <code>ptr</code> is guaranteed to be non-null everywhere
+  it is used in the function.
+</p>
+<p>
+  The other form of checking against NULL you might see looks like this:
+</p>
+<pre><code class="language-c">void do_a_thing(struct Foo *foo) {
+    // do some stuff
+
+    if (foo) {
+        do_something_with_foo(foo);
+    }
+
+    // do some stuff
+}</code></pre>
+<p>
+  In Zig you can accomplish the same thing:
+</p>
+<pre><code class="language-zig">fn do_a_thing(maybe_foo: ?&amp;Foo) {
+    // do some stuff
+
+    if (const foo ?= maybe_foo) {
+      do_something_with_foo(foo);
+    }
+
+    // do some stuff
+}</code></pre>
+<p>
+Once again, the notable thing here is that inside the if block,
+<code>foo</code> is no longer a maybe pointer, it is a pointer, which
+cannot be NULL.
+</p>
+<p>
+One benefit to this is that functions which take pointers as arguments can
+be annotated with the "nonnull" attribute - <code>__attribute__((nonnull))</code> in
+<a href="https://gcc.gnu.org/onlinedocs/gcc-4.0.0/gcc/Function-Attributes.html">GCC</a>.
+The optimizer can sometimes make better decisions knowing that pointer arguments
+cannot be null.
+</p>
+
+<h3 id="error-type">The Error Type</h3>
+<p>
+Probably the most distinguishing feature of Zig is its exception handling strategy.
+</p>
+<p>
+One of the top level declarations you can do is the error value declaration:
+</p>
+<pre><code class="language-zig">error FileNotFound;
+error OutOfMemory;
+error UnexpectedToken;</code></pre>
+<p>
+These error values are assigned an unsigned integer value greater than 0 at
+compile time. You are allowed to declare the same error value more than once,
+and if you do, it gets the same error value.
+</p>
+<p>
+You can refer to these error values with the error namespace such as
+<code>error.FileNotFound</code>. The special value <code>error.Ok</code> has value 0.
+</p>
+<p>
+Each error value across the entire compilation unit gets a unique integer,
+and this determines the size of the pure error type.
+</p>
+<p>
+The pure error type is one of the error values, and in the same way that pointers
+cannot be null, a pure error cannot be <code>error.Ok</code>.
+</p>
+<pre><code class="language-zig">const pure_error = error.FileNotFound;</code></pre>
+<p>
+Most of the time you will not find yourself using a pure error type. Instead,
+likely you will be using the error union type. This is when you take a normal type,
+and prefix it with the <code>%</code> operator.
+</p>
+<p>
+Here is <code>parse_u64</code> from the standard library:
+</p>
+<pre><code class="language-zig">pub error InvalidChar;
+pub error Overflow;
+
+pub fn parse_u64(buf: []u8, radix: u8) -&gt; %u64 {
+    var x : u64 = 0;
+
+    for (buf) |c| {
+        const digit = char_to_digit(c);
+
+        if (digit &gt; radix) {
+            return error.InvalidChar;
+        }
+
+        // x *= radix
+        if (@mul_with_overflow(u64, x, radix, &amp;x)) {
+            return error.Overflow;
+        }
+
+        // x += digit
+        if (@add_with_overflow(u64, x, digit, &amp;x)) {
+            return error.Overflow;
+        }
+    }
+
+    return x;
+}</code></pre>
+<p>
+Notice the return type is <code>%u64</code>. This means that the function
+either returns an unsigned 64 bit integer, or an error.
+</p>
+<p>
+Within the function definition, you can see some return statements that return
+a pure error, and at the bottom a return statement that returns a u64. Both types
+implicitly cast to <code>%u64</code>.
+</p>
+<p>
+What it looks like to use this function varies depending on what you're
+trying to do. One of the following:
+</p>
+<ul>
+  <li>You want to provide a default value if it returned an error.</li>
+  <li>If it returned an error then you want to return the same error.</li>
+  <li>You know with complete certainty it will not return an error, so want to unconditionally unwrap it.</li>
+  <li>You want to take a different action for each possible error.</li>
+</ul>
+<p>If you want to provide a default value, you can use the <code>%%</code> binary operator:</p>
+<pre><code class="language-zig">fn do_a_thing(str: []u8) {
+    const number = parse_u64(str, 10) %% 13;
+    // ...
+}</code></pre>
+<p>
+In this code, <code>number</code> will be equal to the successfully parsed string, or
+a default value of 13. The type of the right hand side of the binary <code>%%</code> operator must
+match the unwrapped error union type, or be <code>unreachable</code>.
+</p>
+<p>Let's say you wanted to return the error if you got one, otherwise continue with the
+function logic:</p>
+<pre><code class="language-zig">fn do_a_thing(str: []u8) -&gt; %void {
+    const number = parse_u64(str, 10) %% |err| return err;
+    // ...
+}</code></pre>
+<p>
+  There is a shortcut for this. The <code>%return</code> expression is equivalent:
+</p>
+<pre><code class="language-zig">fn do_a_thing(str: []u8) -&gt; %void {
+    const number = %return parse_u64(str, 10);
+    // ...
+}</code></pre>
+<p>
+<code>%return</code> evaluates an error union expression, and then returns the same
+error if it was an error. Otherwise, returns the unwrapped value.
+</p>
+<p>
+  Maybe you know with complete certainty that an expression will never be an error.
+  In this case you can do this:
+</p>
+<pre><code class="language-zig">const number = parse_u64("1234", 10) %% unreachable{};</code></pre>
+<p>
+Here we know for sure that "1234" will parse successfully. So we put the
+<code>unreachable{}</code> value on the right hand side. <code>unreachable{}</code> generates
+a panic in debug mode and undefined behavior in release mode. So, while we're debugging the
+application, if there <em>was</em> a surprise error here, the application would crash
+appropriately.
+</p>
+<p>Again there is a syntactic shortcut for this:</p>
+<pre><code class="language-zig">const number = %%parse_u64("1234", 10);</code></pre>
+<p>
+The <code>%%</code> <em>prefix</em> operator is equivalent. It unwraps an error union type,
+and panics in debug mode if the value was an error.
+</p>
+<p>
+Finally, you may want to take a different action for every situation. For that, we have
+the switch expression:
+</p>
+<pre><code class="language-zig">fn do_a_thing(str: []u8) {
+    switch (parse_u64(str, 10)) {
+        error.Ok =&gt; handle_ok_case(),
+        error.Overflow =&gt; {
+            // handle overflow...
+        },
+        // we promise that InvalidChar won't happen (or crash in debug mode if it does)
+        error.InvalidChar =&gt; unreachable{},
+    }
+}</code></pre>
+<p>
+The other component to error handling is defer statements.
+In addition to an unconditional <code>defer</code>, Zig has <code>%defer</code>,
+which evaluates the deferred expression on block exit path if and only if
+the function returned with an error from the block.
+</p>
+<p>
+Example:
+</p>
+<pre><code class="language-zig">fn create_foo(param: i32) -&gt; %Foo {
+    const foo = %return try_to_allocate_foo();
+    // now we have allocated foo. we need to free it if the function fails.
+    // but we want to return it if the function succeeds.
+    %defer deallocate_foo(foo);
+
+    const tmp_buf = allocate_tmp_buffer() ?? return error.OutOfMemory;
+    // tmp_buf is truly a temporary resource, and we for sure want to clean it up
+    // before this block leaves scope
+    defer deallocate_tmp_buffer(tmp_buf);
+
+    if (param &gt; 1337) return error.InvalidParam;
+
+    // here the %defer will not run since we're returning success from the function.
+    // but the defer will run!
+    return foo;
+}</code></pre>
+<p>
+The neat thing about this is that you get robust error handling without
+the verbosity and cognitive overhead of trying to make sure every exit path
+is covered. The deallocation code is always directly following the allocation code.
+</p>
+<p>
+A couple of other tidbits about error handling:
+</p>
+<ul>
+  <li>These primitives give enough expressiveness that it's completely practical
+      to have failing to check for an error be a compile error. If you really want
+      to ignore the error, you can use the <code>%%</code> prefix operator and
+      get the added benefit of crashing in debug mode if your assumption was wrong.
+  </li>
+  <li>
+    Since Zig understands error types, it can pre-weight branches in favor of
+    errors not occuring. Just a small optimization benefit that is not available
+    in other languages.
+  </li>
+  <li>
+    There are no C++ style exceptions or stack unwinding or anything fancy like that.
+    Zig simply makes it convenient to pass error codes around.
+  </li>
+</ul>
+
+<h3 id="stdlib">Alternate Standard Library</h3>
+<p>
+Part of the Zig project is providing an alternative to libc.
+</p>
+<p>
+libc has a lot of useful stuff in it, but it also has
+<a href="https://gcc.gnu.org/ml/gcc/1998-12/msg00083.html">cruft</a>.
+Since we're starting fresh here, we can create a new API without some
+of the mistakes of the 70s still haunting us, and with our 20-20 hindsight.
+</p>
+<p>
+Further, calling dynamically linked functions is
+<a href="http://ewontfix.com/18/">slow</a>. Zig's philosophy is that compiling
+against the standard library in source form is worth it. In C this would be
+called Link Time Optimization - where you generate Intermediate Representation
+instead of machine code and then do another compile step at link time. In Zig,
+we skip the middle man, and create a single compilation unit with everything
+in it, then run the optimizations.
+</p>
+<p>
+So, you can choose to link against libc and take advantage of it, or you can
+choose to ignore it and use the Zig standard library instead. Note, however,
+that virtually every library you depend on probably also depends on libc, which
+drags libc as a dependency into your project. Using libc is still a first
+class use case for Zig.
+</p>
+<h3 id="preprocessor-alternatives">Alternatives to the Preprocessor</h3>
+<p>
+The C preprocessor is extremely powerful. Maybe a little <em>too</em> powerful.
+</p>
+<p>
+The problem with the preprocessor is that it turns one language into
+two languages that don't know about each other.
+</p>
+<p>
+Here are some examples of where the preprocessor messes things up:
+</p>
+<ul>
+  <li>The compiler cannot catch even simple syntax errors in code that is
+    excluded via <code>#ifdef</code>.
+  </li>
+  <li>
+    IDEs cannot implement a function, variable, or field renaming feature that
+    works correctly. Among other mistakes, it will miss renaming things that are
+    in code excluded via <code>#ifdef</code>.
+  </li>
+  <li>
+    Preprocessor defines do not show up in debug symbols.
+  </li>
+</ul>
+<p>
+Regardless of the flaws, C programmers find ourselves using the preprocessor
+because it provides necessary features, such as conditional compilation,
+a constant that can be used for array sizes, and generics.
+</p>
+<p>
+Zig plans to provide better alternatives to solve these problems. For example,
+the constant expression evaluator of Zig allows you to do this:
+</p>
+<pre><code class="language-zig">const array_len = 10 * 2 + 1;
+struct Foo {
+    array: [array_len[i32,
+}</code></pre>
+<p>
+This is not an amazing concept, but it eliminates one use case for <code>#define</code>.
+</p>
+<p>
+Next, conditional compilation. In Zig, all the compilation variables are available
+via the <strong>builtin function</strong> <code>@compile_var</code>.
+</p>
+<p>
+When you use it, it evaluates to a constant expression which knows its value is
+dependant on a compilation variable. Then you can just write normal code:
+</p>
+<pre><code class="language-zig">fn do_something() {
+    if (@compile_var("is_release")) {
+        // do the release behavior
+    } else {
+        // do the debug behavior
+    }
+}</code></pre>
+<p>
+This is guaranteed to leave out the if statement when the code is generated.
+However, the semantic analyzer still runs on all the code.
+</p>
+<p>
+One use case for conditional compilation is demonstrated in
+<a href="http://libsound.io/">libsoundio</a>:
+</p>
+<pre><code class="language-c">static const enum SoundIoBackend available_backends[] = {
+#ifdef SOUNDIO_HAVE_JACK
+    SoundIoBackendJack,
+#endif
+#ifdef SOUNDIO_HAVE_PULSEAUDIO
+    SoundIoBackendPulseAudio,
+#endif
+#ifdef SOUNDIO_HAVE_ALSA
+    SoundIoBackendAlsa,
+#endif
+#ifdef SOUNDIO_HAVE_COREAUDIO
+    SoundIoBackendCoreAudio,
+#endif
+#ifdef SOUNDIO_HAVE_WASAPI
+    SoundIoBackendWasapi,
+#endif
+    SoundIoBackendDummy,
+};</code></pre>
+<p>
+Here, we want a statically sized array to have different contents depending on
+whether we have certain libraries present.
+</p>
+<p>
+In Zig, it would look something like this:
+</p>
+<pre><code class="language-zig">const available_backends =
+    (if (@compile_var("have_jack"))
+        []SoundIoBackend{SoundIoBackend.Jack}
+    else
+        []SoundIoBackend{})
+    ++
+    (if (@compile_var("have_pulse_audio"))
+        []SoundIoBackend{SoundIoBackend.PulseAudio}
+    else
+        []SoundIoBackend{})
+    ++
+    (if (@compile_var("have_alsa"))
+        []SoundIoBackend{SoundIoBackend.Alsa}
+    else
+        []SoundIoBackend{})
+    ++
+    (if (@compile_var("have_core_audio"))
+        []SoundIoBackend{SoundIoBackend.CoreAudio}
+    else
+        []SoundIoBackend{})
+    ++
+    (if (@compile_var("have_wasapi"))
+        []SoundIoBackend{SoundIoBackend.Wasapi}
+    else
+        []SoundIoBackend{})
+    ++
+    []SoundIoBackend{SoundIoBackend.Dummy};
+</code></pre>
+<p>
+Here we take advantage of the compile-time array concatenation operator, <code>++</code>.
+It's a bit more verbose than the C equivalent, but the important thing is that it's
+one language, not two.
+</p>
+<p>
+Finally, generics. Zig does not have generics yet, but has plans for type-generic
+functions and data structures that should be the nail in the coffin for the
+preprocessor. Macros are on the table but no current plan for how to do them.
+</p>
+<h2 id="tetris">Milestone: Tetris Implemented in Zig</h2>
+<p>
+This past week I achieved a fun milestone: a fully playable Tetris clone
+implemented in Zig, with the help of libc,
+<a href="http://www.glfw.org/">GLFW</a>, and
+<a href="http://www.libpng.org/pub/png/libpng.html">libpng</a>.
+</p>
+<p>
+If you're using Linux on the x86_64 architecture, which is currently the
+only supported target, you could
+<a href="https://github.com/andrewrk/zig#debug--development-build">build Zig</a>
+and then
+<a href="https://github.com/andrewrk/tetris#building-and-running">build this Tetris game</a>.
+</p>
+<p>
+Otherwise, here's a video of me demoing it:
+</p>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/AiintPutWrE" frameborder="0" allowfullscreen></iframe>
+
+<h2 id="resources">Resources</h2>
+<p>
+If you are interested in the language, feel free to participate.
+</p>
+<ul>
+  <li><strong>Source code and issue tracker</strong>:
+    <a href="https://github.com/andrewrk/zig">https://github.com/andrewrk/zig</a>
+  </li>
+  <li><strong>IRC channel</strong>: <code>#zig</code> on Freenode</li>
+</ul>
