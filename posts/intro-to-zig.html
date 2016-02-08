@@ -502,7 +502,7 @@ the constant expression evaluator of Zig allows you to do this:
 </p>
 <pre><code class="language-zig">const array_len = 10 * 2 + 1;
 struct Foo {
-    array: [array_len[i32,
+    array: [array_len]i32,
 }</code></pre>
 <p>
 This is not an amazing concept, but it eliminates one use case for <code>#define</code>.
