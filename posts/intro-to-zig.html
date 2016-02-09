@@ -295,7 +295,7 @@ pub fn parse_u64(buf: []u8, radix: u8) -&gt; %u64 {
     for (buf) |c| {
         const digit = char_to_digit(c);
 
-        if (digit &gt; radix) {
+        if (digit &gt;= radix) {
             return error.InvalidChar;
         }
 
