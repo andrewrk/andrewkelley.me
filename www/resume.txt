@@ -13,13 +13,15 @@ Fun Facts:
 
 Education:
 
- * BS in Computer Science from Arizona State University
+ * BS in Computer Science from Arizona State University, August 2007 - May 2011
  * Recurse Center, Fall 2013
 
 Projects and research:
 
  Zig - https://github.com/andrewrk/zig
  - Programming language intended to replace C.
+ - Introduction to the Zig Programming Language
+   (http://andrewkelley.me/post/intro-to-zig.html)
 
  Genesis DAW - http://genesisdaw.org/
  - Work-in-progress Digital Audio Workstation.
