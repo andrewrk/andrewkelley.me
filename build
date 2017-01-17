@@ -21,6 +21,12 @@ swig.init({
 
 var postList = [
   {
+    filename: "troubleshooting-zig-regression-apitrace.html",
+    content: null,
+    date: new Date("2017-01-17T23:25:58.562Z"),
+    title: "Troubleshooting a Zig Regression with apitrace",
+  },
+  {
     filename: "intro-to-zig.html",
     content: null,
     date: new Date("2016-02-08T16:07:35.206Z"),

@@ -1,0 +1,113 @@
+<script>
+  Prism.languages['zig'] = Prism.languages.extend('clike', {
+    'keyword': /\b(fn|import|c_import|const|var|extern|volatile|export|pub|noalias|inline|struct|enum|goto|break|return|continue|asm|defer|if|else|switch|while|for|null|undefined|true|false)\b/,
+    'property': /\b(bool|i8|u8|i16|u16|i32|u32|i64|u64|isize|usize|f32|f64|void|unreachable|type|error|c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong)\b/,
+  });
+</script>
+<h1>Troubleshooting a Zig Regression with apitrace</h1>
+<p>
+The past three months I have spent rewriting <a href="http://ziglang.org/">Zig</a> internals.
+</p>
+<p>
+Previously, the compiler looked like this:
+</p>
+<p>
+Source → Tokenize → Abstract Syntax Tree → Semantic Analysis → LLVM Codegen → Binary
+</p>
+<p>
+Now the compiler looks like this:
+</p>
+<p>
+Source → Tokenize → Abstract Syntax Tree → Intermediate Representation Code →
+Evaluation and Analysis → Intermediate Representation Code → LLVM Codegen → Binary
+</p>
+<p>
+This was a significant amount of work:
+</p>
+<pre>
+92 files changed, 22307 insertions(+), 15357 deletions(-)
+</pre>
+<p>
+It took a while to get all 361 tests passing before I could merge back into master.
+</p>
+<p>
+Part of my testing process is making sure this
+<a href="https://github.com/andrewrk/tetris">Tetris game</a>
+continues to work. Here's a screenshot of it working, from master branch:
+</p>
+<img src="http://superjoe.s3.amazonaws.com/blog-files/troubleshooting-zig-regression-apitrace/tetris-working.png">
+<p>
+Unfortunately, after my changes to Zig, the game looked like this:
+</p>
+<img src="http://superjoe.s3.amazonaws.com/blog-files/troubleshooting-zig-regression-apitrace/tetris-not-working.png">
+<p>
+So, I ran both versions of the game with <a href="http://apitrace.github.io/">apitrace</a>.
+This resulted in a handy diff:
+</p>
+<img src="http://superjoe.s3.amazonaws.com/blog-files/troubleshooting-zig-regression-apitrace/apitrace-diff.png">
+<p>
+Here, it looks like both programs are issuing the same OpenGL commands except for different values to
+<code>glUniform4fv</code>. Aha! Let's go see what's going on there.
+</p>
+<p>
+After investigating this, it turned out that the <code>glUniform4fv</code> was simply for the piece color
+and since the game uses a random number for each piece, the two instances of the game started with different
+pieces.
+</p>
+<p>
+So, I made a small change to the Random Number Generator code...
+</p>
+<p>
+Before:
+</p>
+<pre>
+<code class="language-zig">fn getRandomSeed() -&gt; %u32 {
+    var seed : u32 = undefined;
+    const seed_bytes = (&amp;u8)(&amp;seed)[0...4];
+    %return std.os.getRandomBytes(seed_bytes);
+    return seed;
+ }</code>
+</pre>
+<p>
+After:
+</p>
+<pre>
+<code class="language-zig">fn getRandomSeed() -&gt; %u32 {
+    return 4;
+ }</code>
+</pre>
+<p>
+After
+<a href="http://xkcd.com/221/">this change</a>,
+the <code>glUniform4fv</code> commands were sending the same data. Therefore, the difference
+<strong>must</strong> be in the "data blob" parameters sent in initialization.
+</p>
+<p>
+This led me to scrutinize this code:
+</p>
+<pre>
+<code class="language-zig">const rect_2d_vertexes = [][3]c.GLfloat {
+    []c.GLfloat{0.0, 0.0, 0.0},
+    []c.GLfloat{0.0, 1.0, 0.0},
+    []c.GLfloat{1.0, 0.0, 0.0},
+    []c.GLfloat{1.0, 1.0, 0.0},
+};
+c.glGenBuffers(1, &amp;sg.rect_2d_vertex_buffer);
+c.glBindBuffer(c.GL_ARRAY_BUFFER, sg.rect_2d_vertex_buffer);
+c.glBufferData(c.GL_ARRAY_BUFFER, 4 * 3 * @sizeOf(c.GLfloat), (&amp;c_void)(&amp;rect_2d_vertexes[0][0]), c.GL_STATIC_DRAW);</code>
+</pre>
+<p>
+I discovered the problem was <code>&amp;rect_2d_vertexes[0][0]</code>.
+The compiler noticed that <code>rect_2d_vertexes</code> was a compile-time constant and therefore
+generated the 2D array data structure as static data. It therefore evaluated <code>&amp;rect_2d_vertexes[0][0]</code>
+as a compile-time known expression as well.
+</p>
+<p>
+The problem was that each element in the <code>rect_2d_vertexes</code> referenced another array.
+The compile-time constant generation code emitted an independent array for the inner arrays, whereas
+we are expecting the pointer to point to a 2D array that contains all the data contiguously.
+</p>
+<p>
+So I updated the data structure of constant arrays to refer to their parents, added a test case to cover the change,
+and now the tetris game works again. Huzzah!
+</p>
