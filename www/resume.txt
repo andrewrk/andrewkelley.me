@@ -1,12 +1,11 @@
 Andrew Kelley <superjoe30@gmail.com> http://andrewkelley.me/
 
-Fun Facts:
+Trivia:
 
- * 15 years of programming experience.
- * I write code nearly every single day of my life.
- * Most comfortable in a Linux environment.
- * Passionate about open source software.
- * Generalist. Comfortable with back-end architecture, to creating custom
+ * 16 years of programming experience.
+ * Linux is home but I usually write cross-platform software.
+ * Open source software proponent.
+ * Generalist. Experience with back-end architecture, to creating custom
    algorithms, to designing intuitive user interfaces.
  * Fond of music production and video game development.
  * Dvorak typist.
@@ -15,16 +14,20 @@ Education:
 
  * BS in Computer Science from Arizona State University, August 2007 - May 2011
  * Recurse Center, Fall 2013
+ * Coursera: Digital Signal Processing. Algorithms. Philosophy.
 
-Projects and research:
+Projects and Research:
 
- Zig - https://github.com/andrewrk/zig
- - Programming language intended to replace C.
+ Zig - http://ziglang.org/
+ - Zig is a system programming language which prioritizes optimality, safety,
+   and readability.
  - Introduction to the Zig Programming Language
    (http://andrewkelley.me/post/intro-to-zig.html)
 
  Genesis DAW - http://genesisdaw.org/
  - Work-in-progress Digital Audio Workstation.
+ - Graphical user interface written with OpenGL.
+ - Includes a real-time sample rate conversion implementation.
 
  libsoundio - http://libsound.io/
  - Cross platform audio input and output for real-time and consumer software.
@@ -61,7 +64,17 @@ Projects and research:
  - Creator and maintainer of 79 packages.
  - https://www.npmjs.com/~superjoe
 
-Paid work history:
+Professional History:
+
+ Backtrace - June 2016 to January 2017
+   * Implemented GNU Typed Stack Extension from DWARF 5 specification proposal
+     in Backtrace's library for obtaining variables in a stack trace.
+   * Maintained and improved Backtrace's web server written in C.
+   * Created C static library which contained common code shared among various
+     applications. Encoding/decoding. Random number generation. Path
+     manipulation. JSON serialization.
+   * Implemented error reporting libraries in Python, Go, Node.js, and
+     browser-side JavaScript.
 
  Blend.io - November 2013 to December 2014
    * Worked remotely as a consultant.
@@ -69,13 +82,13 @@ Paid work history:
      reports what plugins and samples are used.
    * Built a tool to simultaneously create an MP3 preview and waveform JSON of
      input audio.
-   * Built an open source module that synchronizes an entire directory to or
-     from S3: https://github.com/andrewrk/node-s3-client
+   * Built an open source Node.js module that synchronizes an entire directory
+     to or from S3.
 
  Indaba Music - April 2012 to June 2013
    * One of the four developers working on a website which hosts remix
      competitions for musicians.
-   * Replaced part of the legacy rails app with a media processing server; wrote
+   * Replaced part of the legacy Rails app with a media processing server; wrote
      a fast waveform generator; cut media processing down from 67 seconds
      average to 8-11 seconds.
    * Wrote open source deployment tools for our new servers such as naught,
@@ -87,7 +100,7 @@ Paid work history:
  Amazon - August 2011 to March 2012
    * Seller Success Team. We helped merchants be better merchants.
    * Instrumented my team's front end code so that our metrics for latency
-     included client-side ajax calls.
+     included client-side requests.
    * Refactored my team's legacy main application without breaking anything.
      Deleted thousands of lines of code.
    * First of my team to adopt Git. Presented on how and why Amazon is
