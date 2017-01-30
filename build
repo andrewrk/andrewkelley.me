@@ -21,6 +21,12 @@ swig.init({
 
 var postList = [
   {
+    filename: "zig-programming-language-blurs-line-compile-time-run-time.html",
+    content: null,
+    date: new Date("2017-01-30T08:19:59.949Z"),
+    title: "Zig Programming Language Blurs the Line Between Compile-Time and Run-Time",
+  },
+  {
     filename: "troubleshooting-zig-regression-apitrace.html",
     content: null,
     date: new Date("2017-01-17T23:25:58.562Z"),
