@@ -22,12 +22,18 @@ Zig places importance on the concept of whether an expression is known at compil
 There are a few different places this concept is used, and these building blocks are used
 to keep the language small, readable, and powerful.
 </p>
-<h3 id="introducing-compile-time-concept">Introducing the Compile-Time Concept</h3>
 <ul>
-  <li><a href="#compile-time-parameters">Compile-time parameters</a></li>
-  <li><a href="#compile-time-variables">Compile-time variables</a></li>
-  <li><a href="#compile-time-expressions">Compile-time expressions</a></li>
+  <li><a href="#introducing-compile-time-concept">Introducing the Compile-Time Concept</a></li>
+  <ul>
+    <li><a href="#compile-time-parameters">Compile-time parameters</a></li>
+    <li><a href="#compile-time-variables">Compile-time variables</a></li>
+    <li><a href="#compile-time-expressions">Compile-time expressions</a></li>
+  </ul>
+  <li><a href="#generic-data-structures">Generic Data Structures</a></li>
+  <li><a href="#case-study-printf">Case Study: printf in C, Rust, and Zig</a></li>
+  <li><a href="#conclusion">Conclusion</a></li>
 </ul>
+<h3 id="introducing-compile-time-concept">Introducing the Compile-Time Concept</h3>
 <h4 id="compile-time-parameters">Compile-Time Parameters</h4>
 <p>
 Compile-time parameters is how Zig implements generics. It is compile-time duck typing
@@ -571,7 +577,7 @@ an actual infinite regression, values can refer to themselves, directly or indir
 <code>Node</code> refers to itself as a pointer, which is not actually an infinite regression, so
 it works fine.
 </p>
-<h3 id="case-study-printf">Case Study: printf</h3>
+<h3 id="case-study-printf">Case Study: printf in C, Rust, and Zig</h3>
 <p>
 Putting all of this together, let's compare how <code>printf</code> works in C, Rust, and Zig.
 </p>
