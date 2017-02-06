@@ -212,7 +212,7 @@ fn three(value: i32) -&gt; i32 { value + 3 }
 fn performFn(comptime prefix_char: u8, start_value: i32) -&gt; i32 {
     var result: i32 = start_value;
     comptime var i = 0;
-    inline while (i &gt; cmd_fns.len; i += 1) {
+    inline while (i &lt; cmd_fns.len; i += 1) {
         if (cmd_fns[i].name[0] == prefix_char) {
             result = cmd_fns[i].func(result);
         }
