@@ -5,7 +5,7 @@ Trivia:
  * 16 years of programming experience.
  * Linux is home but I usually write cross-platform software.
  * Open source software proponent.
- * Generalist. Experience with back-end architecture, to creating custom
+ * Generalist. Experience with low level systems, to creating custom
    algorithms, to designing intuitive user interfaces.
  * Fond of music production and video game development.
  * Dvorak typist.
