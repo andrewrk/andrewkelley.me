@@ -1,0 +1,429 @@
+<script>
+  Prism.languages['zig'] = Prism.languages.extend('clike', {
+    'keyword': /\b(fn|import|cImport|const|var|extern|volatile|export|pub|noalias|inline|struct|enum|goto|break|return|continue|asm|defer|if|else|switch|while|for|null|undefined|true|false|comptime)\b/,
+    'property': /\b(bool|i8|u8|i16|u16|i32|u32|i64|u64|isize|usize|f32|f64|void|unreachable|type|error|c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong)\b/,
+  });
+</script>
+<h1>Zig: Already More Knowable Than C</h1>
+<p class="lead">
+  2017 February 13
+</p>
+<p>
+There is a nifty article created back in 2015 that made its way onto Hacker News today:
+<a href="http://kukuruku.co/hub/programming/i-do-not-know-c">I Do Not Know C</a>.
+</p>
+<p>
+The author creates a delightful set of source code samples in which the reader is
+intended to determine the correctness, and if correct, predict the output of
+the provided code. If you have not done the exercises, I encourage you to take
+a moment to do so.
+</p>
+<p>
+What follows are some of the examples translated into <a href="http://ziglang.org/">Zig</a> for comparison.
+The numbers correspond to the numbers from the original post linked above,
+but the C code is embedded here for comparison.
+</p>
+<h2>1. Declaring the same variable twice</h2>
+<pre>
+<code class="language-c">int i;
+int i = 10;</code>
+</pre>
+<p>
+In Zig:
+</p>
+<pre>
+<code class="language-zig">var i = undefined;
+var i = 10;</code>
+</pre>
+<p>
+Output:
+</p>
+<pre>./test.zig:2:1: error: redefinition of 'i'
+var i = 10;
+^
+./test.zig:1:1: note: previous definition is here
+var i = undefined;
+^</pre>
+
+<h2>2. Null pointer</h2>
+<pre>
+<code class="language-c">extern void bar(void);
+void foo(int *x) {
+    int y = *x;  /* (1) */
+    if (!x) {    /* (2) */
+        return;  /* (3) */
+    }
+    bar();
+}</code>
+</pre>
+<p>
+When this example is translated to Zig, you have to explicitly decide if the pointer
+is nullable. For example, if you used a bare pointer in Zig:
+</p>
+<pre>
+<code class="language-zig">extern fn bar();
+
+export fn foo(x: &amp;c_int) {
+    var y = *x;  // (1)
+    if (x == null) {     // (2)
+        return;    // (3)
+    }
+    bar();
+}</code>
+</pre>
+<p>
+Then it wouldn't even compile:
+</p>
+<pre>./test.zig:7:11: error: operator not allowed for type '?&amp;c_int'
+    if (x == null) {     // (2)
+          ^</pre>
+<p>
+I think this error message can be improved, but even so it prevents a possible
+null related bug here.
+</p>
+<p>
+If the code author makes the pointer nullable, then the natural way to port the
+C code to Zig would be:
+</p>
+<pre>
+<code class="language-zig">extern fn bar();
+
+export fn foo(x: ?&amp;c_int) {
+    var y = x ?? return;  // (1), (2), (3)
+    bar();
+}</code>
+</pre>
+<p>
+This compiles to:
+</p>
+<pre>
+<code>0000000000000000 &lt;foo&gt;:
+   0:	48 85 ff             	test   %rdi,%rdi
+   3:	74 05                	je     a &lt;foo+0xa&gt;
+   5:	e9 00 00 00 00       	jmpq   a &lt;foo+0xa&gt;
+   a:	c3                   	retq   </code>
+</pre>
+<p>
+This does a null check, returns if null, and otherwise calls bar.
+</p>
+<p>
+Perhaps a more faithful way to port the C code to Zig would be this:
+</p>
+<pre>
+<code class="language-zig">extern fn bar();
+
+fn foo(x: ?&amp;c_int) {
+    var y = ??x;  // (1)
+    if (x == null) {     // (2)
+        return;    // (3)
+    }
+    bar();
+}
+
+pub fn main(args: [][]u8) -&gt; %void {
+    foo(null);
+}</code>
+</pre>
+<p>
+The <code>??</code> operator unwraps the nullable value. It asserts
+that the value is not null, and returns the value. If the value is null
+then the behavior is undefined, just like in C.
+</p>
+<p>
+However, in Zig, undefined behavior causes a crash in debug mode:
+</p>
+<pre>
+<code>$ ./test
+attempt to unwrap null
+(...work-in-progress stack unwinding code follows...)
+4196244  -&gt; ./test.zig
+4196024  -&gt; ./test.zig
+4195449  -&gt; ./test.zig
+4195318  -&gt; ./test.zig
+4196205  -&gt; ./test.zig
+4195688  -&gt; ./test.zig
+4195469  -&gt; ./test.zig
+4195356  -&gt; ./test.zig
+Aborted</code>
+</pre>
+<p>
+This is a half-finished traceback implementation (lots of TODO items to
+complete before the
+<a href="https://github.com/andrewrk/zig/milestone/1">0.1.0 milestone</a>),
+but the point is that Zig detected the undefined behavior and aborted.
+</p>
+<p>
+In release mode, this example invokes undefined behavior just like in C.
+To avoid this, programmers are expected to choose one of these options:
+</p>
+<ul>
+  <li>Test code sufficiently in debug mode to catch undefined behavior abuse.</li>
+  <li>Utilize the safe-release option which includes the runtime undefined behavior
+  safety checks.</li>
+</ul>
+<h2>5. strlen</h2>
+<pre>
+<code class="language-c">int my_strlen(const char *x) {
+    int res = 0;
+    while(*x) {
+        res++;
+        x++;
+    }
+    return res;
+}</code>
+</pre>
+<p>
+In Zig, pointers generally point to single objects, while <em>slices</em> are used to
+refer to ranges of memory. So in practice you wouldn't need a strlen function,
+you would use <code>some_bytes.len</code>. But we can port this code over anyway:
+</p>
+<pre>
+<code class="language-zig">export fn my_strlen(x: &amp;const u8) -&gt; c_int {
+    var res: c_int = 0;
+    while (x[res] != 0) {
+        res += 1;
+    }
+    return res;
+}</code>
+</pre>
+<p>
+Here we must use pointer indexing because Zig does not support direct pointer
+arithmetic.
+</p>
+<p>The compiler catches this problem:</p>
+<pre>
+<code>./test.zig:3:14: error: expected type 'usize', found 'c_int'
+    while (x[res] != 0) {
+             ^</code>
+</pre>
+<h2>6. Print string of bytes backwards</h2>
+<pre>
+<code class="language-c">#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+int main() {
+    const char *str = "hello";
+    size_t length = strlen(str);
+    size_t i;
+    for(i = length - 1; i &gt;= 0; i--) {
+        putchar(str[i]);
+    }
+    putchar('\n');
+    return 0;
+}</code>
+</pre>
+<p>
+Ported to Zig:
+</p>
+<pre>
+<code class="language-zig">const c = @cImport({
+    @cInclude("stdio.h");
+    @cInclude("string.h");
+});
+
+export fn main(argc: c_int, argv: &amp;&amp;u8) -&gt; c_int {
+    const str = c"hello";
+    const length: c.size_t = c.strlen(str);
+    var i: c.size_t = length - 1;
+    while (i &gt;= 0; i -= 1) {
+        c.putchar(str[i]);
+    }
+    c.putchar('\n');
+    return 0;
+}</code>
+</pre>
+<p>It compiles fine but produces this output when run:</p>
+<pre>
+<code>$ ./test
+integer overflow
+(...work-in-progress stack unwinding code follows...)
+Aborted</code>
+</pre>
+<h2>8. Weirdo syntax</h2>
+<pre>
+<code class="language-c">#include &lt;stdio.h&gt;
+int main() {
+    int array[] = { 0, 1, 2 };
+    printf("%d %d %d\n", 10, (5, array[1, 2]), 10);
+}</code>
+</pre>
+<p>
+There is no way to express this code in Zig. Good riddance.
+</p>
+
+<h2>9. Unsigned overflow</h2>
+<pre>
+<code class="language-c">unsigned int add(unsigned int a, unsigned int b) {
+    return a + b;
+}</code>
+</pre>
+<p>In Zig:</p>
+<pre>
+<code class="language-zig">const io = @import("std").io;
+
+export fn add(a: c_uint, b: c_uint) -&gt; c_uint {
+    return a + b;
+}
+
+pub fn main(args: [][]u8) -&gt; %void {
+    %%io.stdout.printf("{}\n", add(@maxValue(c_uint), 1));
+}</code>
+</pre>
+<p>Output:</p>
+<pre>
+<code>$ ./test 
+integer overflow
+(...work-in-progress stack unwinding code follows...)
+4196260  -&gt; ./test.zig
+4196008  -&gt; ./test.zig
+4195433  -&gt; ./test.zig
+4195293  -&gt; ./test.zig
+4196199  -&gt; ./test.zig
+4195672  -&gt; ./test.zig
+4195453  -&gt; ./test.zig
+4195340  -&gt; ./test.zig
+Aborted</code>
+</pre>
+<p>
+The <code>+</code> operator asserts that there will be no overflow.
+If you want twos complement wraparound behavior, that is possible
+with the <code>+%</code> operator instead:
+</p>
+<pre>
+<code class="language-zig">export fn add(a: c_uint, b: c_uint) -&gt; c_uint {
+    return a +% b;
+}</code>
+</pre>
+<p>
+Now the output is:
+</p>
+<pre>
+<code>$ ./test 
+0</code>
+</pre>
+
+<h2>10. Signed overflow</h2>
+<pre>
+<code class="language-c">int add(int a, int b) {
+    return a + b;
+}</code>
+</pre>
+<p>In C signed and unsigned integer overflow work differently. In Zig,
+they work the same. <code>+</code> asserts that no overflow occurs,
+and <code>+%</code> performs twos complement wraparound behavior.</p>
+
+<h2>11. Negation overflow</h2>
+<pre>
+<code class="language-c">int neg(int a) {
+    return -a;
+}</code>
+</pre>
+<p>By now you can probably predict how this works in Zig.</p>
+<pre>
+<code class="language-zig">const io = @import("std").io;
+
+export fn neg(a: c_int) -&gt; c_int {
+    return -a;
+}
+
+pub fn main(args: [][]u8) -&gt; %void {
+    %%io.stdout.printf("{}\n", neg(@minValue(c_int)));
+}</code>
+</pre>
+<p>Output:</p>
+<pre>
+<code>$ ./test 
+integer overflow
+(...work-in-progress stack unwinding code follows...)
+4196260  -&gt; ./test.zig
+4196008  -&gt; ./test.zig
+4195433  -&gt; ./test.zig
+4195289  -&gt; ./test.zig
+4196194  -&gt; ./test.zig
+4195672  -&gt; ./test.zig
+4195453  -&gt; ./test.zig
+4195340  -&gt; ./test.zig
+Aborted</code>
+</pre>
+<p>The <code>-%</code> wraparound variant of the negation operator works
+here too:
+<pre>
+<code class="language-zig">export fn neg(a: c_int) -&gt; c_int {
+    return -%a;
+}</code>
+</pre>
+<p>Output:</p>
+<pre>
+<code>$ ./test 
+-2147483648</code>
+</pre>
+
+<h2>12. Division overflow</h2>
+<pre>
+<code class="language-c">int div(int a, int b) {
+    assert(b != 0);
+    return a / b;
+}</code>
+</pre>
+<p>Different operation, same deal.</p>
+<pre>
+<code class="language-zig">const io = @import("std").io;
+
+fn div(a: i32, b: i32) -&gt; i32 {
+    return a / b;
+}
+
+pub fn main(args: [][]u8) -&gt; %void {
+    %%io.stdout.printf("{}\n", div(@minValue(i32), -1));
+}</code>
+</pre>
+<p>Output:</p>
+<pre>
+<code>$ ./test 
+integer overflow
+(...work-in-progress stack unwinding code follows...)
+4196196  -&gt; ./test.zig
+4195944  -&gt; ./test.zig
+4195369  -&gt; ./test.zig
+4196709  -&gt; ./test.zig
+4196135  -&gt; ./test.zig
+4195608  -&gt; ./test.zig
+4195389  -&gt; ./test.zig
+4195276  -&gt; ./test.zig
+Aborted
+</code>
+</pre>
+<p>
+Notably, if you execute the division operation at compile time,
+the overflow becomes a compile error (same for the other operations):
+</p>
+<pre>
+<code class="language-zig">    %%io.stdout.printf("{}\n", comptime div(@minValue(i32), -1));</code>
+</pre>
+<p>Output:</p>
+<pre>
+<code>./test.zig:4:14: error: operation caused overflow
+    return a / b;
+             ^
+./test.zig:8:44: note: called from here
+    %%io.stdout.printf("{}\n", comptime div(@minValue(i32), -1));
+                                           ^</code>
+</pre>
+
+<h2>Conclusion</h2>
+<p>
+It's clear from these incomplete stack trace listings that Zig is still a
+work-in-progress. Although to be fair, a crash in C doesn't have an error
+message or even a half-finished stack trace - it will typically print
+<code>Segmentation fault</code> and nothing else. And all the gdb debugging
+you can do with C works with Zig too.
+</p>
+<p>
+Zig currently lacks a language specification and any sort of coherent documentation.
+Even so, it is on track to become a language that will boot out C as the simple,
+straightforward way to write system code.
+</p>
+<a href="http://ziglang.org/"><img src="http://superjoe.s3.amazonaws.com/blog-files/zig-programming-language-blurs-line-compile-time-run-time/zig-logo.svg" style="width: 200px;" alt="Zig"></a>
+<p>
+A system programming language which prioritizes <strong>optimality</strong>, <strong>safety</strong>, and
+<strong>readability</strong>. <a href="https://www.patreon.com/andrewrk">Donate $1/month</a>
+</p>
