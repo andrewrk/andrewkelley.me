@@ -1,0 +1,288 @@
+<script>
+  Prism.languages['zig'] = Prism.languages.extend('clike', {
+    'keyword': /\b(fn|import|cImport|const|var|extern|packed|volatile|export|pub|noalias|inline|struct|enum|goto|break|return|continue|asm|defer|if|else|switch|while|for|null|undefined|true|false|comptime)\b/,
+    'property': /\b(bool|i8|u8|i16|u16|i32|u32|i64|u64|i13|u1|u2|u3|u4|u5|u7|u12|isize|usize|f32|f64|void|unreachable|type|error|c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong)\b/,
+  });
+</script>
+<h1>A Better Way to Implement Bit-Fields</h1>
+<p class="lead">
+  2017 February 16
+</p>
+<p>
+One of the main use cases for the <a href="http://ziglang.org/">Zig Programming Language</a>
+is operating system development and embedded development. So, what better way to make sure the
+language is suitable than to work on a project in this field?
+</p>
+<p>
+This is why I am creating a
+<a href="https://github.com/andrewrk/clashos">4-player arcade game that runs directly on the Raspberry Pi 3 hardware</a>.
+The project has only just begun, but already it is revealing important fixes and features in Zig,
+and I am updating the compiler to incorporate these things as I work.
+</p>
+<p>
+The next thing I'm working on is adding a USB controller driver, so that I can use a gamepad to
+test the game. I noticed when looking at
+<a href="https://github.com/Chadderz121/csud/blob/e13b9355d043a9cdd384b335060f1bc0416df61e/include/hcd/dwc/designware20.h#L164">some reference code</a>
+that there are large structs full of bit-fields, and these turn out to be extremely convenient:
+</p>
+<pre>
+<code class="language-c">extern volatile struct CoreGlobalRegs {
+	volatile struct {
+		volatile bool sesreqscs : 1;
+		volatile bool sesreq : 1;
+		volatile bool vbvalidoven:1;
+		volatile bool vbvalidovval:1;
+		volatile bool avalidoven:1;
+		volatile bool avalidovval:1;
+		volatile bool bvalidoven:1;
+		volatile bool bvalidovval:1;
+		volatile bool hstnegscs:1;
+		volatile bool hnpreq:1;
+		volatile bool HostSetHnpEnable : 1;
+		volatile bool devhnpen:1;
+		volatile unsigned _reserved12_15:4;
+		volatile bool conidsts:1;
+		volatile unsigned dbnctime:1;
+		volatile bool ASessionValid : 1;
+		volatile bool BSessionValid : 1;
+		volatile unsigned OtgVersion : 1;
+		volatile unsigned _reserved21:1;
+		volatile unsigned multvalidbc:5;
+		volatile bool chirpen:1;
+		volatile unsigned _reserved28_31:4;
+	} __attribute__ ((__packed__)) OtgControl; // +0x0
+	volatile struct {
+		volatile unsigned _reserved0_1 : 2; // @0
+		volatile bool SessionEndDetected : 1; // @2
+		volatile unsigned _reserved3_7 : 5; // @3
+		volatile bool SessionRequestSuccessStatusChange : 1; // @8
+		volatile bool HostNegotiationSuccessStatusChange : 1; // @9
+		volatile unsigned _reserved10_16 : 7; // @10
+		volatile bool HostNegotiationDetected : 1; // @17
+		volatile bool ADeviceTimeoutChange : 1; // @18
+		volatile bool DebounceDone : 1; // @19
+		volatile unsigned _reserved20_31 : 12; // @20
+	} __attribute__ ((__packed__)) OtgInterrupt; // +0x4
+// ...</code>
+</pre>
+<p>
+I'll stop there, but this struct goes on for pages and pages. You can see that in C,
+bit-fields have special syntax. The fields have a type like normal, and then an extra
+colon and a number of bits.
+</p>
+<p>
+Bit-fields in C have acquired a poor reputation in the programming community, for a few reasons:
+</p>
+<ul>
+  <li><a href="https://www.flamingspork.com/blog/2014/11/14/c-bitfields-considered-harmful/">Poor performance due to loading more bytes than necessary</a></li>
+  <li><a href="https://gcc.gnu.org/onlinedocs/gcc/Structures-unions-enumerations-and-bit-fields-implementation.html">Largely implementation-defined behavior</a></li>
+  <li><a href="http://stackoverflow.com/a/4240989/432">Platform dependence</a></li>
+  <li><a href="http://yarchive.net/comp/linux/bitfields.html">Linus Torvalds: bitfields make it harder to work with combinations of flags</a></li>
+</ul>
+<p>
+Many experienced developers have given up on the usefulness of bit-fields and prefer
+to manually wrangle their binary data.
+</p>
+<p>
+Some of these problems I can address in Zig, by loading the minimal number of bytes necessary,
+defining how bit-fields are laid out in memory, and ensuring that bit-fields work the same
+or at least predictably on all platforms. Some of the problems are inherently tricky, such
+as the question of how to deal with endianness when a bit-field has more than 8 bits and
+crosses a byte boundary.
+</p>
+<p>
+With these things in mind, I set out to implement bit-fields in Zig, and
+now I am pleased to announce that work is complete. Zig has bit-fields, and it required
+no syntax additions.
+</p>
+<p>
+Zig takes advantage of the fact that types are first-class values at compile-time. There is a
+built-in function which returns an integer type with the specified signness and bit count,
+and it can be used to get access to uncommon integer types like this:
+</p>
+<pre>
+<code class="language-zig">const u1 = @intType(false, 1);
+const u2 = @intType(false, 2);
+const u7 = @intType(false, 7);
+const i13 = @intType(true, 13);</code>
+</pre>
+<p>
+These uncommon integer types work like normal integer types. Arithmetic, casting, and overflow
+are generalized to work with any integer type.
+</p>
+<p>
+These integer types are one component to the way bit-fields are implemented in Zig.
+The other component takes advantage of the fact that Zig has 3 different
+kinds of <code>struct</code> layouts:
+</p>
+<ul>
+  <li>Default - compiler may re-arrange fields and insert padding</li>
+  <li><code>extern</code> - compatible with the target environment C ABI</li>
+  <li><code>packed</code> - fields in exact order specified, no padding</li>
+</ul>
+<p>
+In a <code>packed</code> struct, the programmer is directly in charge of the memory layout
+of the struct. Fields with integer types take up exactly as many bits as the integer type specifies.
+If a field greater than 8 bits is byte-aligned, it is represented in memory with
+the endianness of the host. If the field is not byte-aligned, it is represented in memory in
+big-endian. Boolean values are represented as 1 bit in packed structs.
+</p>
+<p>
+So that's it. To make a bit-field, you have a packed struct with fields that are
+integers with the bit sizes you want.
+</p>
+<p>
+For illustration, here is the above code translated into Zig:
+</p>
+<pre>
+<code class="language-zig">const u1 = @intType(false, 1);
+const u2 = @intType(false, 2);
+const u4 = @intType(false, 4);
+const u5 = @intType(false, 5);
+const u7 = @intType(false, 7);
+const u12 = @intType(false, 12);
+
+const CoreGlobalRegs = packed struct {
+    OtgControl: struct {
+        sesreqscs: bool,
+        sesreq: bool,
+        vbvalidoven: bool,
+        vbvalidovval: bool,
+        avalidoven: bool,
+        avalidovval: bool,
+        bvalidoven: bool,
+        bvalidovval: bool,
+        hstnegscs: bool,
+        hnpreq: bool,
+        HostSetHnpEnable: bool,
+        devhnpen: bool,
+        _reserved12_15: u4,
+        conidsts: bool,
+        dbnctime: u1,
+        ASessionValid: bool,
+        BSessionValid: bool,
+        OtgVersion: u1,
+        _reserved21: u1,
+        multvalidbc: u5,
+        chirpen: bool,
+        _reserved28_31: u4,
+    }, // +0x0
+    OtgInterrupt: packed struct {
+        _reserved0_1: u2, // @0
+        SessionEndDetected: bool, // @2
+        _reserved3_7: u5, // @3
+        SessionRequestSuccessStatusChange: bool, // @8
+        HostNegotiationSuccessStatusChange: bool, // @9
+        _reserved10_16: u7, // @10
+        HostNegotiationDetected: bool, // @17
+        ADeviceTimeoutChange: bool, // @18
+        DebounceDone: bool, // @19
+        _reserved20_31: u12, // @20
+    }, // +0x4
+// ...</code>
+</pre>
+<p>
+By the way it's nice to know that the USB protocol has a bit to indicate "a valid oven".
+I wonder when that is used.
+</p>
+<p>
+You may notice that we do a bit of setup before declaring the struct by creating
+these integer types. Currently, only integer types of size <code>8</code>, <code>16</code>,
+<code>32</code>, and <code>64</code> are provided by the compiler globally.
+But perhaps more integer types can be provided as primitive types, or perhaps there will
+be a standard library file to import and get more integer types.
+</p>
+<p>
+You may also notice that the <code>volatile</code> keyword is gone. This is a different
+issue, but Zig handles volatile at the pointer level. So instead of putting the keyword
+on every field, you make sure the pointer to the whole struct is volatile, and then
+any loads and stores done via the pointer become volatile, and any pointers derived from
+the volatile pointer are also volatile.
+</p>
+<p>
+One point of comparison with C bit-fields. Take a look at this code:
+</p>
+<pre>
+<code class="language-c">struct Foo {
+    unsigned a : 3;
+    unsigned b : 3;
+    unsigned c : 2;
+} __attribute__ ((__packed__));
+
+struct Foo foo = {1, 2, 3};
+
+unsigned f(void) {
+    unsigned *ptr = &amp;foo.b;
+    return *ptr;
+}</code>
+</pre>
+<p>
+Here we try to take the address of a bit-field, and clang doesn't like that idea so much:
+</p>
+<pre><code>test.c:10:12: error: address of bit-field requested
+    return &amp;foo.b;
+           ^~~~~~</code>
+</pre>
+<p>
+Meanwhile, in Zig, this works just fine:
+</p>
+<pre>
+<code class="language-zig">const u2 = @intType(false, 2);
+const u3 = @intType(false, 3);
+
+const Foo = packed struct {
+    a: u3,
+    b: u3,
+    c: u2,
+};
+
+var foo = Foo {
+    .a = 1,
+    .b = 2,
+    .c = 3,
+};
+
+fn f() -&gt; u3 {
+    const ptr = &amp;foo.b;
+    return *ptr;
+}</code>
+</pre>
+<p>
+The bit offset and length is carried in the type of the pointer, so you get an error if you
+try to pass such a pointer to a function expecting a normal, byte-aligned value:
+</p>
+<pre>
+<code class="language-zig">const BitField = packed struct {
+    a: u3,
+    b: u3,
+    c: u2,
+};
+
+fn foo(bit_field: &amp;const BitField) -&gt; u3 {
+    return bar(&amp;bit_field.b);
+}
+
+fn bar(x: &amp;const u3) -&gt; u3 {
+    return *x;
+}</code>
+</pre>
+<p>
+In this case the compiler catches the mistake:
+</p>
+<pre>
+<code>./test.zig:8:26: error: expected type '&amp;const u3', found '&amp;:3:6 const u3'
+    return bar(&amp;bit_field.b);
+                         ^</code>
+</pre>
+<p>
+There are bound to be some edge cases and bugs as I polish this feature, but I am
+pleased that it turned out to integrate so cleanly into Zig's minimal design.
+</p>
+<p>
+
+</p>
+<a href="http://ziglang.org/"><img src="http://superjoe.s3.amazonaws.com/blog-files/zig-programming-language-blurs-line-compile-time-run-time/zig-logo.svg" style="width: 200px;" alt="Zig"></a>
+<p>
+A system programming language which prioritizes <strong>optimality</strong>, <strong>safety</strong>, and
+<strong>readability</strong>. <a href="https://www.patreon.com/andrewrk">Donate $1/month</a>
+</p>

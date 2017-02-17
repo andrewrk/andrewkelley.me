@@ -21,6 +21,12 @@ swig.init({
 
 var postList = [
   {
+    filename: "a-better-way-to-implement-bit-fields.html",
+    content: null,
+    date: new Date("2017-02-17T00:43:53.543Z"),
+    title: "A Better Way to Implement Bit Fields",
+  },
+  {
     filename: "zig-already-more-knowable-than-c.html",
     content: null,
     date: new Date("2017-02-14T04:49:59.989Z"),
