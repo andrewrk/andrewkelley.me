@@ -13,8 +13,6 @@ Trivia:
 Education:
 
  * BS in Computer Science from Arizona State University, August 2007 - May 2011
- * Recurse Center, Fall 2013
- * Coursera: Digital Signal Processing. Algorithms. Philosophy.
 
 Projects and Research:
 
