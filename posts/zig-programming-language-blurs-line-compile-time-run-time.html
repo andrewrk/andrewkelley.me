@@ -1,6 +1,6 @@
 <script>
   Prism.languages['zig'] = Prism.languages.extend('clike', {
-    'keyword': /\b(fn|import|cImport|const|var|extern|volatile|export|pub|noalias|inline|struct|enum|goto|break|return|continue|asm|defer|if|else|switch|while|for|null|undefined|true|false|comptime)\b/,
+    'keyword': /\b(fn|import|cImport|const|var|extern|volatile|export|pub|noalias|inline|struct|enum|goto|break|return|continue|asm|defer|if|else|switch|while|for|null|undefined|true|false|comptime|or|and)\b/,
     'property': /\b(bool|i8|u8|i16|u16|i32|u32|i64|u64|isize|usize|f32|f64|void|unreachable|type|error|c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong)\b/,
   });
   Prism.languages['rust'] = Prism.languages.extend('clike', {
@@ -124,7 +124,7 @@ if we wanted to:
 <pre>
 <code class="language-zig">fn max(comptime T: type, a: T, b: T) -&gt; T {
     if (T == bool) {
-        return a || b;
+        return a or b;
     } else if (a &gt; b) {
         return a;
     } else {
@@ -146,7 +146,7 @@ this:
 </p>
 <pre>
 <code class="language-zig">fn max(a: bool, b: bool) -&gt; bool {
-    return a || b;
+    return a or b;
 }</code>
 </pre>
 <p>
@@ -154,32 +154,8 @@ All the code that dealt with compile-time known values is eliminated and we are 
 the necessary run-time code to accomplish the task.
 </p>
 <p>
-<code>if</code> expressions can be explicitly inlined by adding the <code>inline</code> keyword in front of them.
-This guarantees to the compiler that the condition will be known at compile-time and will generate
-an error if that is not true:
-</p>
-<pre>
-<code class="language-zig">fn foo(condition: bool) -&gt; i32 {
-    inline if (condition) {
-        return 1234;
-    } else {
-        return 5678;
-    }
-}</code>
-</pre>
-<pre>
-<code>./test.zig:2:16: error: unable to evaluate constant expression
-    inline if (condition) {
-               ^</code>
-</pre>
-<p>
-Here, <code>condition</code> is a run-time parameter of the function, therefore it is not valid
-as the condition for an <code>inline if</code>.
-</p>
-<p>
 This works the same way for <code>switch</code> expressions - they are implicitly inlined
-when the target expression is compile-time known, and they support the explicit
-<code>inline</code> prefix.
+when the target expression is compile-time known.
 </p>
 <h4 id="compile-time-variables">Compile-Time Variables</h4>
 <p>
