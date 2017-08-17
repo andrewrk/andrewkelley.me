@@ -364,10 +364,10 @@ the unwrapped value.
   Maybe you know with complete certainty that an expression will never be an error.
   In this case you can do this:
 </p>
-<pre><code class="language-zig">const number = parseU64("1234", 10) %% @unreachable();</code></pre>
+<pre><code class="language-zig">const number = parseU64("1234", 10) %% unreachable;</code></pre>
 <p>
 Here we know for sure that "1234" will parse successfully. So we put the
-<code>@unreachable()</code> value on the right hand side. <code>@unreachable()</code> generates
+<code>unreachable</code> value on the right hand side. <code>unreachable</code> generates
 a panic in debug mode and undefined behavior in release mode. So, while we're debugging the
 application, if there <em>was</em> a surprise error here, the application would crash
 appropriately.
@@ -389,7 +389,7 @@ the switch expression:
             // handle overflow...
         },
         // we promise that InvalidChar won't happen (or crash in debug mode if it does)
-        error.InvalidChar =&gt; @unreachable(),
+        error.InvalidChar =&gt; unreachable,
     }
 }</code></pre>
 <p>
