@@ -120,7 +120,7 @@ fn foo(x: ?&amp;c_int) {
     bar();
 }
 
-pub fn main(args: [][]u8) -&gt; %void {
+pub fn main() -&gt; %void {
     foo(null);
 }</code>
 </pre>
@@ -135,15 +135,24 @@ However, in Zig, undefined behavior causes a crash in debug mode:
 <pre>
 <code>$ ./test
 attempt to unwrap null
-(...work-in-progress stack unwinding code follows...)
-4196244  -&gt; ./test.zig
-4196024  -&gt; ./test.zig
-4195449  -&gt; ./test.zig
-4195318  -&gt; ./test.zig
-4196205  -&gt; ./test.zig
-4195688  -&gt; ./test.zig
-4195469  -&gt; ./test.zig
-4195356  -&gt; ./test.zig
+/home/andy/dev/zig/build/lib/zig/std/special/zigrt.zig:16:35: 0x0000000000203395 in ??? (test)
+        @import("std").debug.panic("{}", message_ptr[0..message_len]);
+                                  ^
+/home/andy/tmp/test.zig:4:13: 0x000000000020a61d in ??? (test)
+    var y = ??x;  // (1)
+            ^
+/home/andy/tmp/test.zig:12:8: 0x00000000002046fd in ??? (test)
+    foo(null);
+       ^
+/home/andy/dev/zig/build/lib/zig/std/special/bootstrap.zig:60:21: 0x0000000000203697 in ??? (test)
+    return root.main();
+                    ^
+/home/andy/dev/zig/build/lib/zig/std/special/bootstrap.zig:47:13: 0x0000000000203420 in ??? (test)
+    callMain(argc, argv, envp) %% std.os.posix.exit(1);
+            ^
+/home/andy/dev/zig/build/lib/zig/std/special/bootstrap.zig:34:25: 0x0000000000203290 in ??? (test)
+    posixCallMainAndExit()
+                        ^
 Aborted</code>
 </pre>
 <p>
@@ -224,18 +233,19 @@ export fn main(argc: c_int, argv: &amp;&amp;u8) -&gt; c_int {
     const str = c"hello";
     const length: c.size_t = c.strlen(str);
     var i: c.size_t = length - 1;
-    while (i &gt;= 0; i -= 1) {
-        c.putchar(str[i]);
+    while (i &gt;= 0) : (i -= 1) {
+        _ = c.putchar(str[i]);
     }
-    c.putchar('\n');
+    _ = c.putchar('\n');
     return 0;
 }</code>
 </pre>
 <p>It compiles fine but produces this output when run:</p>
 <pre>
-<code>$ ./test
-integer overflow
-(...work-in-progress stack unwinding code follows...)
+<code>integer overflow
+test.zig:10:25: 0x000000000020346d in ??? (test)
+    while (i &gt;= 0) : (i -= 1) {
+                        ^
 Aborted</code>
 </pre>
 <h2>8. Weirdo syntax</h2>
@@ -264,23 +274,29 @@ export fn add(a: c_uint, b: c_uint) -&gt; c_uint {
     return a + b;
 }
 
-pub fn main(args: [][]u8) -&gt; %void {
+pub fn main() -&gt; %void {
     %%io.stdout.printf("{}\n", add(@maxValue(c_uint), 1));
 }</code>
 </pre>
 <p>Output:</p>
 <pre>
-<code>$ ./test 
+<code>$ ./test
 integer overflow
-(...work-in-progress stack unwinding code follows...)
-4196260  -&gt; ./test.zig
-4196008  -&gt; ./test.zig
-4195433  -&gt; ./test.zig
-4195293  -&gt; ./test.zig
-4196199  -&gt; ./test.zig
-4195672  -&gt; ./test.zig
-4195453  -&gt; ./test.zig
-4195340  -&gt; ./test.zig
+test.zig:4:14: 0x00000000002032b4 in ??? (test)
+    return a + b;
+             ^
+test.zig:8:35: 0x0000000000204747 in ??? (test)
+    %%io.stdout.printf("{}\n", add(@maxValue(c_uint), 1));
+                                  ^
+lib/zig/std/special/bootstrap.zig:60:21: 0x00000000002036d7 in ??? (test)
+    return root.main();
+                    ^
+lib/zig/std/special/bootstrap.zig:47:13: 0x0000000000203460 in ??? (test)
+    callMain(argc, argv, envp) %% std.os.posix.exit(1);
+            ^
+lib/zig/std/special/bootstrap.zig:34:25: 0x00000000002032d0 in ??? (test)
+    posixCallMainAndExit()
+                        ^
 Aborted</code>
 </pre>
 <p>
@@ -325,23 +341,29 @@ export fn neg(a: c_int) -&gt; c_int {
     return -a;
 }
 
-pub fn main(args: [][]u8) -&gt; %void {
+pub fn main() -&gt; %void {
     %%io.stdout.printf("{}\n", neg(@minValue(c_int)));
 }</code>
 </pre>
 <p>Output:</p>
 <pre>
-<code>$ ./test 
+<code>$ ./test
 integer overflow
-(...work-in-progress stack unwinding code follows...)
-4196260  -&gt; ./test.zig
-4196008  -&gt; ./test.zig
-4195433  -&gt; ./test.zig
-4195289  -&gt; ./test.zig
-4196194  -&gt; ./test.zig
-4195672  -&gt; ./test.zig
-4195453  -&gt; ./test.zig
-4195340  -&gt; ./test.zig
+test.zig:4:12: 0x00000000002032b0 in ??? (test)
+    return -a;
+           ^
+test.zig:8:35: 0x0000000000204742 in ??? (test)
+    %%io.stdout.printf("{}\n", neg(@minValue(c_int)));
+                                  ^
+lib/zig/std/special/bootstrap.zig:60:21: 0x00000000002036d7 in ??? (test)
+    return root.main();
+                    ^
+lib/zig/std/special/bootstrap.zig:47:13: 0x0000000000203460 in ??? (test)
+    callMain(argc, argv, envp) %% std.os.posix.exit(1);
+            ^
+lib/zig/std/special/bootstrap.zig:34:25: 0x00000000002032d0 in ??? (test)
+    posixCallMainAndExit()
+                        ^
 Aborted</code>
 </pre>
 <p>The <code>-%</code> wraparound variant of the negation operator works
@@ -372,26 +394,40 @@ fn div(a: i32, b: i32) -&gt; i32 {
     return a / b;
 }
 
-pub fn main(args: [][]u8) -&gt; %void {
+pub fn main() -&gt; %void {
     %%io.stdout.printf("{}\n", div(@minValue(i32), -1));
 }</code>
 </pre>
+<p>First of all, Zig doesn't let us do this operation because
+it's unclear whether we want floored division or truncated division:</p>
+<pre><code>
+test.zig:4:14: error: division with 'i32' and 'i32': signed integers must use @divTrunc, @divFloor, or @divExact
+    return a / b;
+             ^</code></pre>
+<p>Some languages use truncation division (C) while others (Python) use floored division.
+Zig makes the programmer choose explicitly.</p>
+<pre><code class="language-zig">fn div(a: i32, b: i32) -&gt; i32 {
+    return @divTrunc(a, b);
+}</code></pre>
 <p>Output:</p>
-<pre>
-<code>$ ./test 
+<pre><code>$ ./test
 integer overflow
-(...work-in-progress stack unwinding code follows...)
-4196196  -&gt; ./test.zig
-4195944  -&gt; ./test.zig
-4195369  -&gt; ./test.zig
-4196709  -&gt; ./test.zig
-4196135  -&gt; ./test.zig
-4195608  -&gt; ./test.zig
-4195389  -&gt; ./test.zig
-4195276  -&gt; ./test.zig
-Aborted
-</code>
-</pre>
+test.zig:4:12: 0x000000000020a683 in ??? (test)
+    return @divTrunc(a, b);
+           ^
+test.zig:8:35: 0x0000000000204707 in ??? (test)
+    %%io.stdout.printf("{}\n", div(@minValue(i32), -1));
+                                  ^
+lib/zig/std/special/bootstrap.zig:60:21: 0x0000000000203697 in ??? (test)
+    return root.main();
+                    ^
+lib/zig/std/special/bootstrap.zig:47:13: 0x0000000000203420 in ??? (test)
+    callMain(argc, argv, envp) %% std.os.posix.exit(1);
+            ^
+lib/zig/std/special/bootstrap.zig:34:25: 0x0000000000203290 in ??? (test)
+    posixCallMainAndExit()
+                        ^
+Aborted</code></pre>
 <p>
 Notably, if you execute the division operation at compile time,
 the overflow becomes a compile error (same for the other operations):
@@ -411,19 +447,10 @@ the overflow becomes a compile error (same for the other operations):
 
 <h2>Conclusion</h2>
 <p>
-It's clear from these incomplete stack trace listings that Zig is still a
-work-in-progress. Although to be fair, a crash in C doesn't have an error
-message or even a half-finished stack trace - it will typically print
-<code>Segmentation fault</code> and nothing else. And all the gdb debugging
-you can do with C works with Zig too.
-</p>
-<p>
-Zig currently lacks a language specification and any sort of coherent documentation.
-Even so, it is on track to become a language that will boot out C as the simple,
-straightforward way to write system code.
+Zig is on track to boot out C as the simple, straightforward way to write system code.
 </p>
 <a href="http://ziglang.org/"><img src="http://superjoe.s3.amazonaws.com/blog-files/zig-programming-language-blurs-line-compile-time-run-time/zig-logo.svg" style="width: 200px;" alt="Zig"></a>
 <p>
-A system programming language which prioritizes <strong>optimality</strong>, <strong>safety</strong>, and
-<strong>readability</strong>. <a href="https://www.patreon.com/andrewrk">Donate $1/month</a>
+An open-source programming language designed for <strong>robustness</strong>, <strong>optimality</strong>, and
+<strong>clarity</strong>. <a href="https://www.patreon.com/andrewrk">Donate $1/month</a>
 </p>
