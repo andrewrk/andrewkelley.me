@@ -188,7 +188,7 @@ fn three(value: i32) -&gt; i32 { value + 3 }
 fn performFn(comptime prefix_char: u8, start_value: i32) -&gt; i32 {
     var result: i32 = start_value;
     comptime var i = 0;
-    inline while (i &lt; cmd_fns.len; i += 1) {
+    inline while (i &lt; cmd_fns.len) : (i += 1) {
         if (cmd_fns[i].name[0] == prefix_char) {
             result = cmd_fns[i].func(result);
         }
@@ -205,7 +205,7 @@ fn testPerformFn() {
 }
 
 fn assert(ok: bool) {
-    if (!ok) @unreachable();
+    if (!ok) unreachable;
 }</code>
 </pre>
 <p>
@@ -308,7 +308,7 @@ fn testFibonacci() {
 }
 
 fn assert(ok: bool) {
-    if (!ok) @unreachable();
+    if (!ok) unreachable;
 }</code>
 </pre>
 <pre>
@@ -333,7 +333,7 @@ fn testFibonacci() {
 }
 
 fn assert(ok: bool) {
-    if (!ok) @unreachable();
+    if (!ok) unreachable;
 }</code>
 </pre>
 <pre>
@@ -390,7 +390,7 @@ fn testFibonacci() {
 }
 
 fn assert(ok: bool) {
-    if (!ok) @unreachable();
+    if (!ok) unreachable;
 }</code>
 </pre>
 <pre>
@@ -447,7 +447,7 @@ What if we fix the base case, but put the wrong value in the <code>assert</code>
 </pre>
 <pre>
 <code>./test.zig:15:14: error: unable to evaluate constant expression
-    if (!ok) @unreachable();
+    if (!ok) unreachable;
              ^
 ./test.zig:10:15: note: called from here
         assert(fibonacci(7) == 99999);
@@ -456,7 +456,7 @@ What if we fix the base case, but put the wrong value in the <code>assert</code>
 <p>
 What happened is Zig started interpreting the <code>assert</code> function with the
 parameter <code>ok</code> set to <code>false</code>. When the interpreter hit
-<code>@unreachable()</code> it emitted a compile error, because reaching unreachable
+<code>unreachable</code> it emitted a compile error, because reaching unreachable
 code is undefined behavior, and undefined behavior causes a compile error if it is detected
 at compile-time.
 </p>
@@ -474,10 +474,10 @@ fn firstNPrimes(comptime n: usize) -&gt; [n]i32 {
     var prime_list: [n]i32 = undefined;
     var next_index: usize = 0;
     var test_number: i32 = 2;
-    while (next_index &lt; prime_list.len; test_number += 1) {
+    while (next_index &lt; prime_list.len) : (test_number += 1) {
         var test_prime_index: usize = 0;
         var is_prime = true;
-        while (test_prime_index &lt; next_index; test_prime_index += 1) {
+        while (test_prime_index &lt; next_index) : (test_prime_index += 1) {
             if (test_number % prime_list[test_prime_index] == 0) {
                 is_prime = false;
                 break;
