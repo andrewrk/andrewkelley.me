@@ -1,0 +1,879 @@
+<script>
+  Prism.languages['zig'] = Prism.languages.extend('clike', {
+    'keyword': /\b(fn|import|cImport|const|var|extern|volatile|export|pub|noalias|inline|struct|enum|break|return|continue|asm|defer|if|else|switch|while|for|null|undefined|true|false|comptime)\b/,
+    'property': /\b(bool|i8|u8|i16|u16|i32|u32|i64|u64|isize|usize|f32|f64|void|unreachable|type|error|c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong)\b/,
+  });
+</script>
+<h1>Zig: December 2017 in Review</h1>
+
+<p>
+I figured since I <a href="https://www.patreon.com/andrewrk">ask people to donate monthly</a>, 
+I will start giving a monthly progress report to provide accountability.
+</p>
+
+<p>So here's everything that happened in <a href="http://ziglang.org/">Zig land</a>
+in December 2017:</p>
+
+<h2>enum tag types</h2>
+
+<p>You can now specify the tag type for an enum (<a href="https://github.com/zig-lang/zig/issues/305">#305</a>):</p>
+
+<pre><code class="language-zig">const Small2 = enum (u2) {
+    One,
+    Two,
+};</code></pre>
+
+<p>If you specify the tag type for an enum, you can put it in a packed struct:</p>
+
+<pre><code class="language-zig">const A = enum (u3) {
+    One,
+    Two,
+    Three,
+    Four,
+    One2,
+    Two2,
+    Three2,
+    Four2,
+};
+
+const B = enum (u3) {
+    One3,
+    Two3,
+    Three3,
+    Four3,
+    One23,
+    Two23,
+    Three23,
+    Four23,
+};
+
+const C = enum (u2) {
+    One4,
+    Two4,
+    Three4,
+    Four4,
+};
+
+const BitFieldOfEnums = packed struct {
+    a: A,
+    b: B,
+    c: C,
+};
+
+const bit_field_1 = BitFieldOfEnums {
+    .a = A.Two,
+    .b = B.Three3,
+    .c = C.Four4,
+};</code></pre>
+
+<p>
+You can no longer cast from an enum to an arbitrary integer. Instead you must
+cast to the enum tag type and vice versa:
+</p>
+
+<pre><code class="language-zig">const Small2 = enum (u2) {
+    One,
+    Two,
+};
+test "casting enum to its tag type" {
+    testCastEnumToTagType(Small2.Two);
+}
+
+fn testCastEnumToTagType(value: Small2) {
+    assert(u2(value) == 1);
+}</code></pre>
+
+<h2>enum tag values</h2>
+<p>
+Now you can set the tag values of enums:
+</p>
+
+<pre><code class="language-zig">const MultipleChoice = enum(u32) {
+    A = 20,
+    B = 40,
+    C = 60,
+    D = 1000,
+};</code></pre>
+
+<h2>Complete enum and union overhaul</h2>
+<p>
+Related issue: <a href="https://github.com/zig-lang/zig/issues/618">#618</a>
+</p>
+<p>
+Enums are now a simple mapping between a symbol and a number. They can
+no longer contain payloads.
+</p>
+
+<p>
+Unions have been upgraded and can now accept an enum as an argument:
+</p>
+
+<pre><code class="language-zig">const TheTag = enum {A, B, C};
+const TheUnion = union(TheTag) { A: i32, B: i32, C: i32 };
+test "union field access gives the enum values" {
+    assert(TheUnion.A == TheTag.A);
+    assert(TheUnion.B == TheTag.B);
+    assert(TheUnion.C == TheTag.C);
+}</code></pre>
+
+<p>
+If you want to auto-create an enum for a union, you can use the <code>enum</code>
+keyword like this:
+</p>
+
+<pre><code class="language-zig">const TheUnion2 = union(enum) {
+    Item1,
+    Item2: i32,
+};</code></pre>
+
+<p>
+You can switch on a union-enum just like you could previously with an
+enum:
+</p>
+
+<pre><code class="language-zig">const SwitchProngWithVarEnum = union(enum) {
+    One: i32,
+    Two: f32,
+    Meh: void,
+};
+fn switchProngWithVarFn(a: &amp;const SwitchProngWithVarEnum) {
+    switch(*a) {
+        SwitchProngWithVarEnum.One =&gt; |x| {
+            assert(x == 13);
+        },
+        SwitchProngWithVarEnum.Two =&gt; |x| {
+            assert(x == 13.0);
+        },
+        SwitchProngWithVarEnum.Meh =&gt; |x| {
+            const v: void = x;
+        },
+    }
+}</code></pre>
+
+<p>
+However, if you do not give an enum to a union, the tag value is not
+visible to the programmer:
+</p>
+
+<pre><code class="language-zig">const Payload = union {
+    A: i32,
+    B: f64,
+    C: bool,
+};
+export fn entry() {
+    const a = Payload { .A = 1234 };
+    foo(a);
+}
+fn foo(a: &amp;const Payload) {
+    switch (*a) {
+        Payload.A =&gt; {},
+        else =&gt; unreachable,
+    }
+}</code></pre>
+
+<pre><code>test.zig:11:13: error: switch on union which has no attached enum
+    switch (*a) {
+            ^
+test.zig:1:17: note: consider 'union(enum)' here
+const Payload = union {
+                ^
+test.zig:12:16: error: container 'Payload' has no member called 'A'
+        Payload.A =&gt; {},
+               ^</code></pre>
+
+<p>
+There is still debug safety though!
+</p>
+
+<pre><code class="language-zig">const Foo = union {
+    float: f32,
+    int: u32,
+};
+
+pub fn main() -&gt; %void {
+    var f = Foo { .int = 42 };
+    bar(&amp;f);
+}
+
+fn bar(f: &amp;Foo) {
+    f.float = 12.34;
+}
+</code></pre>
+
+<pre><code>access of inactive union field
+lib/zig/std/special/panic.zig:12:35: 0x0000000000203674 in ??? (test)
+        @import("std").debug.panic("{}", msg);
+                                  ^
+test.zig:12:6: 0x0000000000217bd7 in ??? (test)
+    f.float = 12.34;
+     ^
+test.zig:8:8: 0x0000000000217b7c in ??? (test)
+    bar(&amp;f);
+       ^
+Aborted</code></pre>
+
+<p>
+However, if you make an <code>extern union</code> to be compatible with C code,
+there is no debug safety, just like a C union.
+</p>
+
+<p>
+Other tidbits:
+</p>
+
+<ul>
+  <li> <code>@enumTagName</code> is renamed to <a href="http://ziglang.org/documentation/master/#builtin-tagName">@tagName</a></li>
+ <li> <code>@EnumTagType</code> is renamed to <a href="http://ziglang.org/documentation/master/#builtin-TagType">@TagType</a>, and it works on both enums and
+   union-enums.</li>
+ <li>There is no longer an <code>EnumTag</code> type</li>
+ <li>It is now an error for enums and unions to have 0 fields. However
+   you can still have a struct with 0 fields.</li>
+ <li> union values can implicitly cast to enum values when the enum type is
+   the tag type of the union and the union value tag is comptime known to
+   have a void field type. likewise, enum values can implicitly cast to
+   union values. See <a href="https://github.com/zig-lang/zig/issues/642">#642</a>.</li>
+</ul>
+
+<pre><code class="language-zig">test "cast tag type of union to union" {
+    var x: Value2 = Letter2.B;
+    assert(Letter2(x) == Letter2.B);
+}
+const Letter2 = enum { A, B, C };
+const Value2 = union(Letter2) { A: i32, B, C, };
+
+test "implicit cast union to its tag type" {
+    var x: Value2 = Letter2.B;
+    assert(x == Letter2.B);
+    giveMeLetterB(x);
+}
+fn giveMeLetterB(x: Letter2) {
+    assert(x == Value2.B);
+}</code></pre>
+
+<h2>Update LLD fork to 5.0.1rc2</h2>
+
+<p>
+We have a fork of LLD in the zig project because of several upstream issues, all
+of which I have filed bugs for:
+</p>
+
+<ul>
+  <li>LDD calls exit after successful link. Patch to fix sent upstream and accepted.
+  </li>
+  <li>LDD crashes on a linker script with empty sections. Fixed upstream.</li>
+  <li>Buggy MACH-O code causes assertion failure in simple object. We have a
+    hacky workaround for this bug in zig's fork of LLD, but the workaround is
+    not good enough to send upstream. See
+    <a href="https://github.com/zig-lang/zig/issues/662">#662</a> for more details.
+  </li>
+  <li>MACH-O: Bad ASM code generated for __stub_helpers section
+    Thanks to Patricio V. for sending the fix upstream, which has been accepted.</li>
+</ul>
+
+  <p>
+When LLVM 6.0.0 comes out, Zig will have to keep its fork because of the one
+issue, but we can drop all the other patches since they have been accepted
+upstream.
+  </p>
+
+  <h2>Self-hosted compiler progress</h2>
+
+<p>
+The self-hosted compiler effort has begun.
+</p>
+
+<p>
+So far we have a tokenizer, and an incomplete parser and formatter.
+The code uses no recursion and therefore has compile-time
+known stack space usage. See <a href="https://github.com/zig-lang/zig/issues/157">#157</a>
+</p>
+
+<p>
+The self-hosted compiler works on every supported platform, is built using
+the zig build system, tested with <code>zig test</code>, links against LLVM,
+and can import <strong>100%</strong> of the LLVM symbols from the LLVM
+C-API .h files - <em>even the inline functions</em>.
+</p>
+
+<p>
+There is one C++ file in Zig which uses the more powerful LLVM C++ API
+(for example to create debug information) and exposes a C API. This file
+is now shared between the C++ self-hosted compiler and the self-hosted compiler.
+In stage1, we create a static library with this one file in it, and then use
+that library in both the C++ compiler and the self-hosted compiler.
+</p>
+
+<h2>Higher level arg-parsing API</h2>
+
+<p>
+It's really a shame that Windows command line parsing requires you to
+allocate memory. This means that to have a cross-platform API for command
+line arguments, even though in POSIX it can never fail, we have to handle
+the possibility because of Windows. This lead to a command line args
+API like this:
+</p>
+
+<pre><code class="language-zig">pub fn main() -&gt; %void {
+    var arg_it = os.args();
+    // skip my own exe name
+    _ = arg_it.skip();
+    while (arg_it.next(allocator)) |err_or_arg| {
+        const arg = %return err_or_arg;
+        defer allocator.free(arg);
+        // use the arg...
+    }
+}</code></pre>
+
+<p>
+Yikes, a bit cumbersome. I added a higher level API. Now you can call
+<code>std.os.argsAlloc</code> and get a <code>%[]const []u8</code>, and you just have to call
+<code>std.os.argsFree</code> when you're done with it.
+</p>
+
+<pre><code class="language-zig">pub fn main() -&gt; %void {
+    const allocator = std.heap.c_allocator;
+
+    const args = %return os.argsAlloc(allocator);
+    defer os.argsFree(allocator, args);
+
+    var arg_i: usize = 1;
+    while (arg_i &lt; args.len) : (arg_i += 1) {
+        const arg = args[arg_i];
+        // do something with arg...
+    }
+}</code></pre>
+
+<p>Better! Single point of failure.</p>
+
+<p>
+For now this uses the other API under the hood, but it could be
+reimplemented with the same API to do a single allocation.
+</p>
+
+<p>
+I added a new kind of test to make sure command line argument parsing works.
+</p>
+
+<h2>Automatic C-to-Zig translation</h2>
+
+<ul>
+  <li> Translation now understands enum tag types.</li>
+  <li> I refactored the C macro parsing, and made it understand pointer casting.
+   Now some kinds of int-to-ptr code in .h files for embedded programming
+   just work:</li>
+</ul>
+
+<pre><code class="languuage-c">#define NRF_GPIO ((NRF_GPIO_Type *) NRF_GPIO_BASE)</code></pre>
+
+<p>Zig now understands this C macro.</p>
+
+   <h2>std.mem</h2>
+
+   <ul>
+     <li>add <code>aligned</code> functions to Allocator interface
+</li>
+<li><code>mem.Allocator</code> initializes bytes to undefined. This does nothing in ReleaseFast
+  mode. In Debug and ReleaseSafe modes, it initializes bytes to <code>0xaa</code> which helps catch
+   memory errors.
+   </li>
+   <li>add <code>mem.FixedBufferAllocator</code>
+ </li>
+   </ul>
+
+ <h2>std.os.ChildProcess</h2>
+
+ I added <code>std.os.ChildProcess.exec</code> for when you want to spawn a child process, wait for it
+to complete, and then capture the stdandard output into a buffer.
+
+<pre><code class="language-zig">pub fn exec(self: &amp;Builder, argv: []const []const u8) -&gt; []u8 {
+    const max_output_size = 100 * 1024;
+    const result = os.ChildProcess.exec(self.allocator, argv, null, null, max_output_size) %% |err| {
+        std.debug.panic("Unable to spawn {}: {}", argv[0], @errorName(err));
+    };
+    switch (result.term) {
+        os.ChildProcess.Term.Exited =&gt; |code| {
+            if (code != 0) {
+                warn("The following command exited with error code {}:\n", code);
+                printCmd(null, argv);
+                warn("stderr:{}\n", result.stderr);
+                std.debug.panic("command failed");
+            }
+            return result.stdout;
+        },
+        else =&gt; {
+            warn("The following command terminated unexpectedly:\n");
+            printCmd(null, argv);
+            warn("stderr:{}\n", result.stderr);
+            std.debug.panic("command failed");
+        },
+    }
+}</code></pre>
+
+<h2>std.sort</h2>
+
+<p>
+<a href="https://github.com/Hejsil">Hejsil</a> <a href="https://github.com/zig-lang/zig/issues/657">pointed out</a>
+that the quicksort implementation in the standard library failed a simple test case.
+</p>
+
+<p>
+There was another problem with the implementation of sort in the standard library, 
+which is that it used <code>O(n)</code> stack space via recursion. This is fundamentally
+insecure, especially if you consider that the length of an array you might want to sort could be
+user input. It prevents <a href="https://github.com/zig-lang/zig/issues/157">#157</a>
+from working as well.
+</p>
+
+<p>
+I had a look at
+<a href="https://en.wikipedia.org/wiki/Sorting_algorithm#Comparison_of_algorithms">Wikipedia's Comparison of Sorting Algorithms</a> and only 1 sorting algorithm checked all the boxes:
+</p>
+
+<ul>
+  <li>Best case <code>O(n)</code> complexity (adaptive sort)</a>
+  <li>Average case <code>O(n * log(n))</code> complexity</a>
+  <li>Worst case <code>O(n * log(n))</code> complexity</a>
+  <li><code>O(1)</code> memory</a>
+  <li>Stable sort</a>
+</ul>
+
+<p>
+And that algorithm is <a href="https://en.wikipedia.org/wiki/Block_sort">Block sort</a>.
+</p>
+
+<p>
+I found a
+<a href="https://github.com/BonzaiThePenguin/WikiSort/blob/master/WikiSort.c">high quality implementation of block sort in C</a>,
+which is licensed under the public domain.
+</p>
+
+<p>
+I ported the code from C to Zig, integrated it into the standard library, and it passed all tests first try. Amazing.
+</p>
+
+<p>
+Surely, I thought, there must be some edge case. So I created a simple fuzz tester:
+</p>
+
+<pre><code class="language-zig">test "sort fuzz testing" {
+    var rng = std.rand.Rand.init(0x12345678);
+    const test_case_count = 10;
+    var i: usize = 0;
+    while (i &lt; test_case_count) : (i += 1) {
+        fuzzTest(&amp;rng);
+    }
+}
+
+var fixed_buffer_mem: [100 * 1024]u8 = undefined;
+
+fn fuzzTest(rng: &amp;std.rand.Rand) {
+    const array_size = rng.range(usize, 0, 1000);
+    var fixed_allocator = mem.FixedBufferAllocator.init(fixed_buffer_mem[0..]);
+    var array = %%fixed_allocator.allocator.alloc(IdAndValue, array_size);
+    // populate with random data
+    for (array) |*item, index| {
+        item.id = index;
+        item.value = rng.range(i32, 0, 100);
+    }
+    sort(IdAndValue, array, cmpByValue);
+
+    var index: usize = 1;
+    while (index &lt; array.len) : (index += 1) {
+        if (array[index].value == array[index - 1].value) {
+            assert(array[index].id &gt; array[index - 1].id);
+        } else {
+            assert(array[index].value &gt; array[index - 1].value);
+        }
+    }
+}</code></pre>
+
+<p>
+This test passed as well. And so I think this problem is solved.
+</p>
+
+<h2>@export</h2>
+
+<p>
+There is now an <a href="http://ziglang.org/documentation/master/#builtin-export">@export</a> builtin function which can be used in a comptime block
+to conditionally export a function:
+</p>
+
+<pre><code class="language-zig">const builtin = @import("builtin");
+
+comptime {
+    const strong_linkage = builtin.GlobalLinkage.Strong;
+    if (builtin.link_libc) {
+        @export("main", main, strong_linkage);
+    } else if (builtin.os == builtin.Os.windows) {
+        @export("WinMainCRTStartup", WinMainCRTStartup, strong_linkage);
+    } else {
+        @export("_start", _start, strong_linkage);
+    }
+}</code></pre>
+
+<p>
+It can also be used to create aliases:
+</p>
+
+
+<pre><code class="language-zig">const builtin = @import("builtin");
+const is_test = builtin.is_test;
+
+comptime {
+    const linkage = if (is_test) builtin.GlobalLinkage.Internal else builtin.GlobalLinkage.Weak;
+    const strong_linkage = if (is_test) builtin.GlobalLinkage.Internal else builtin.GlobalLinkage.Strong;
+
+    @export("__letf2", @import("comparetf2.zig").__letf2, linkage);
+    @export("__getf2", @import("comparetf2.zig").__getf2, linkage);
+
+    if (!is_test) {
+        // only create these aliases when not testing
+        @export("__cmptf2", @import("comparetf2.zig").__letf2, linkage);
+        @export("__eqtf2", @import("comparetf2.zig").__letf2, linkage);
+        @export("__lttf2", @import("comparetf2.zig").__letf2, linkage);
+        @export("__netf2", @import("comparetf2.zig").__letf2, linkage);
+        @export("__gttf2", @import("comparetf2.zig").__getf2, linkage);
+    }
+}</code></pre>
+
+<p>
+Previous export syntax is still allowed. See <a href="https://github.com/zig-lang/zig/issues/462 ">#462</a> and <a href="https://github.com/zig-lang-zig/issues/420">#420</a>.
+</p>
+
+<h2>Labeled loops, blocks, break, and continue, and R.I.P. goto</h2>
+
+<p>
+We used to have labels and goto like this:
+</p>
+
+<pre><code class="language-zig">export fn entry() {
+    label:
+    goto label;
+}</code></pre>
+
+<p>
+Now this does not work, because goto is gone.
+</p>
+
+<pre><code>test.zig:2:10: error: expected token ';', found ':'
+    label:
+         ^</code></pre>
+
+<p>
+There are a few reasons to use goto, but all of the use cases are better served
+with other zig control flow features:
+</p>
+
+<ul>
+  <li>cleanup pattern. Use <code>defer</code> and <code>%defer</code> instead.</li>
+  <li>goto backward</li>
+  <li>goto forward</li>
+</ul>
+
+<h3>goto backward</h3>
+
+<pre><code class="language-zig">export fn entry() {
+    start_over:
+
+    while (some_condition) {
+        // do something...
+        goto start_over;
+    }
+}</code></pre>
+
+<p>
+Instead, use a loop!
+</p>
+
+<pre><code class="language-zig">export fn entry() {
+    outer: while (true) {
+
+        while (some_condition) {
+            // do something...
+            continue :outer;
+        }
+
+        break;
+    }
+}</code></pre>
+
+<h3>goto forward</h3>
+
+<pre><code class="language-zig">pub fn findSection(elf: &amp;Elf, name: []const u8) -&gt; %?&amp;SectionHeader {
+    var file_stream = io.FileInStream.init(elf.in_file);
+    const in = &amp;file_stream.stream;
+
+    section_loop: for (elf.section_headers) |*elf_section| {
+        if (elf_section.sh_type == SHT_NULL) continue;
+
+        const name_offset = elf.string_section.offset + elf_section.name;
+        %return elf.in_file.seekTo(name_offset);
+
+        for (name) |expected_c| {
+            const target_c = %return in.readByte();
+            if (target_c == 0 or expected_c != target_c) goto next_section;
+        }
+
+        {
+            const null_byte = %return in.readByte();
+            if (null_byte == 0) return elf_section;
+        }
+next_section:
+    }
+
+    return null;
+}</code></pre>
+
+<p>
+Looks like the use case is breaking out of an outer loop:
+</p>
+
+<pre><code class="language-zig">pub fn findSection(elf: &amp;Elf, name: []const u8) -&gt; %?&amp;SectionHeader {
+    var file_stream = io.FileInStream.init(elf.in_file);
+    const in = &amp;file_stream.stream;
+
+    section_loop: for (elf.section_headers) |*elf_section| {
+        if (elf_section.sh_type == SHT_NULL) continue;
+
+        const name_offset = elf.string_section.offset + elf_section.name;
+        %return elf.in_file.seekTo(name_offset);
+
+        for (name) |expected_c| {
+            const target_c = %return in.readByte();
+            if (target_c == 0 or expected_c != target_c) continue :section_loop;
+        }
+
+        {
+            const null_byte = %return in.readByte();
+            if (null_byte == 0) return elf_section;
+        }
+    }
+
+    return null;
+}</code></pre>
+
+<p>
+You can also break out of arbitrary blocks:
+</p>
+
+<pre><code class="language-zig">export fn entry() {
+    outer: {
+
+        while (some_condition) {
+            // do something...
+            break :outer;
+        }
+    }
+}</code></pre>
+
+<p>
+This can be used to return a value from a block in the same way you
+can return a value from a function:
+</p>
+
+<pre><code class="language-zig">export fn entry() {
+    const value = init: {
+        for (slice) |item| {
+            if (item &gt; 100)
+                break :init item;
+        }
+        break :init 0;
+    };
+}</code></pre>
+
+<p>
+Omitting a semicolon no longer causes the value to be returned by the block.
+Instead you must use explicit block labels to return a value from a block.
+I'm considering a keyword such as <code>result</code> which defaults to the
+current block.
+</p>
+
+<p>
+Removal of goto caused a regression in C-to-Zig translation: Switch statements
+no longer can be translated. However this code will be resurrected
+soon using labeled loops and labeled break instead of goto.
+</p>
+
+<p>
+See <a href="https://github.com/zig-lang/zig/issues/346">#346</a>, <a href="https://github.com/zig-lang-zig/issues/630">#630</a>, and <a href="https://github.com/zig-lang-zig/issues/629">#629</a>.
+</p>
+
+<h2>New IR pass iteration strategy</h2>
+
+<p>
+Before:
+</p>
+
+<ul>
+  <li> IR basic blocks are in arbitrary order</li>
+    <li> when doing an IR pass, when a block is encountered, code
+    must look at all the instructions in the old basic block,
+    determine what blocks are referenced, and queue up those
+    old basic blocks first.
+    </li>
+    <li> This had a bug</li>
+</ul>
+
+<pre><code class="language-zig">while (cond) {
+    if (false) { }
+    break;
+}</code></pre>
+
+<p>
+Pretty crazy right? Something as simple as this would crash the compiler.
+</p>
+<p>
+Now:
+</p>
+
+<ul>
+  <li> IR basic blocks are required to be in an order that guarantees
+    they will be referenced by a branch, before any instructions
+    within are referenced.
+    ir pass1 is updated to meet this constraint.</li>
+    <li>hen doing an IR pass, we iterate over old basic blocks
+    in the order they appear. Blocks which have not been
+    referenced are discarded.</li>
+    <li>fter the pass is complete, we must iterate again to look
+    for old basic blocks which now point to incomplete new
+    basic blocks, due to comptime code generation.</li>
+    <li>his last part can probably be optimized - most of the time
+      we don't need to iterate over the basic block again.</li>
+</ul>
+
+    <p>
+This improvement deletes a lot of messy code:
+    </p>
+
+<pre> 5 files changed, 288 insertions(+), 1243 deletions(-) </pre>
+
+<p>
+And it also fixes comptime branches not being respected sometimes:
+</p>
+
+<pre><code class="language-zig">export fn entry() {
+    while (false) {
+        @compileError("bad");
+    }
+}</code></pre>
+
+<p>Before, this would cause a compile error. Now the while loop respects the
+implicit compile-time.
+</p>
+
+<p>
+See <a href="https://github.com/zig-lang/zig/issues/667">#667</a>.
+</p>
+
+<h2>Bug Fixes</h2>
+
+<ul>
+  <li> fix const and volatile qualifiers being dropped sometimes.
+   in the expression <code>&amp;const a.b</code>, the const (and/or volatile)
+   qualifiers would be incorrectly dropped. See <a href="https://github.com/zig-lang/zig/issues/655">#655</a>.
+  </li>
+  <li> fix compiler crash in a nullable if after an if in a switch
+ prong of a switch with 2 prongs in an else. See <a href="https://github.com/zig-lang/zig/issues/656">#656</a>.
+  </li>
+  <li>fix assert when wrapping zero bit type in nullable. See <a href="https://github.com/zig-lang/zig/issues/659">#659</a>.
+  </li>
+  <li>fix crash when implicitly casting array of len 0 to slice. See <a href="https://github.com/zig-lang/zig/issues/660">#660</a>.
+  </li>
+  <li>fix endianness of sub-byte integer fields in packed structs. In the future
+ packed structs will require specifying endianness. See <a href="https://github.com/zig-lang/zig/issues/307">#307</a>.
+  </li>
+  <li>fix <code>std.os.path.resolve</code> when the drive is missing.
+  </li>
+  <li>fix automatically C-translated functions not having debug information.
+  </li>
+  <li>fix crash when passing union enum with sub-byte field to const slice parameter.
+ See <a href="https://github.com/zig-lang/zig/issues/664">#664</a>.
+ </li>
+</ul>
+    
+   <h2>Miscellaneous changes</h2>
+
+<ul>
+  <li>Rename <code>builtin.is_big_endian</code> to <code>builtin.endian</code>. This is in preparation for
+   having endianness be a pointer property, which is related to packed structs.
+   See <a href="https://github.com/zig-lang/zig/issues/307">#307</a>.
+  </li>
+  <li>Tested Zig with LLVM debug mode and fixed some bugs that were causing LLVM
+   assertions.
+  </li>
+  <li>Add
+    <a href="http://ziglang.org/documentation/master/#builtin-noInlineCall">@noInlineCall</a>.
+    See <a href="https://github.com/zig-lang/zig/issues/640">#640</a>.
+    This fixes a crash in <code>--release-safe</code> and <code>--release-fast</code> modes
+    where the optimizer inlines everything into <code>_start</code> and
+   clobbers the command line argument data.
+   If we were able to verify that the user's code never reads
+   command line args, we could leave off this "no inline"
+   attribute. This might call for a patch to LLVM. It seems like inlining
+   into a naked function should correctly bump the stack pointer.
+  </li>
+  <li>add <code>i29</code> and <code>u29</code> primitive types. <code>u29</code> is the type of alignment,
+   so it makes sense to be a primitive.
+   probably in the future we'll make any <code>i</code> or <code>u</code> followed by
+   digits into a primitive.
+  </li>
+  <li>add implicit cast from enum tag type of union to const ptr to the union. closes <a href="https://github.com/zig-lang/zig/issues/654">#654</a>
+  </li>
+  <li>ELF stack traces support <code>DW_AT_ranges</code>, so sometimes when you would see "???"
+   you now get a useful stack trace instead.
+   </li>
+   <li>add <code>std.sort.min</code> and <code>std.sort.max</code> functions
+ </li>
+ <li><code>std.fmt.bufPrint</code> returns a possible <code>error.BufferTooSmall</code> instead of 
+   asserting that the buffer is large enough.
+   </li>
+   <li>Remove unnecessary inline calls in <code>std.math</code>.
+ </li>
+ <li><code>zig build</code> now has a <code>--search-prefix</code> option. Any number of search prefixes can be
+   specified.
+   </li>
+   <li>add some utf8 parsing utilities to the standard library.
+ </li>
+</ul>
+
+ <h2>Thank you contributors!</h2>
+
+ <ul>
+   <li><strong>MIURA Masahiro</strong> fixed the color of compiler messages for light-themed terminals.
+     (See <a href="https://github.com/zig-lang/zig/issues/644">#644</a>)</li>
+   <li><strong>Peter Rönnquist</strong> added format for floating point numbers.
+     <code>{.x}</code> where <code>x</code> is the number of decimals. (See <a href="https://github.com/zig-lang/zig/issues/668">#668</a>)</li>
+ </ul>
+
+   <h2>Thank you financial supporters!</h2>
+
+<p>
+Special thanks to those who <a href="https://www.patreon.com/andrewrk">donate monthly</a>:
+</p>
+
+<ul>
+<li>Lauren Chavis</li>
+<li>Andrea Orru</li>
+<li>Adrian Sinclair</li>
+<li>David Joseph</li>
+<li>jeff kelley</li>
+<li>Hasan Abdul-Rahman</li>
+<li>Wesley Kelley</li>
+<li>Jordan Torbiak</li>
+<li>Richard Ohnemus</li>
+<li>Martin Schwaighofer</li>
+<li>Matthew </li>
+<li>Mirek Rusin</li>
+<li>Brendon Scheinman</li>
+<li>Pyry Kontio</li>
+<li>Thomas Ballinger</li>
+<li>Peter Ronnquist</li>
+<li>Robert Paul Herman</li>
+<li>Audun Wilhelmsen</li>
+<li>Marko Mikulicic</li>
+<li>Anthony J. Benik</li>
+<li>Caius </li>
+<li>Tyler Philbrick</li>
+<li>Jeremy Larkin</li>
+<li>Rasmus Rønn Nielsen</li>
+</ul>
