@@ -1,0 +1,225 @@
+<script>
+  Prism.languages['zig'] = Prism.languages.extend('clike', {
+    'keyword': /\b(fn|import|cImport|const|var|extern|volatile|export|pub|noalias|inline|struct|enum|break|return|continue|asm|defer|if|else|switch|while|for|null|undefined|true|false|comptime)\b/,
+    'property': /\b(bool|i8|u8|i16|u16|i32|u32|i64|u64|isize|usize|f32|f64|void|unreachable|type|error|c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong)\b/,
+  });
+  Prism.languages['rust'] = Prism.languages.extend('clike', {
+    'keyword': /\b(fn|const|var|pub|struct|enum|break|return|continue|if|else|match|while|for|true|false)\b/,
+    'property': /\b(bool|i8|u8|i16|u16|i32|u32|i64|u64|isize|usize|f32|f64|void|unreachable|type|error|str|static)\b/,
+  });
+  Prism.languages['llvm'] = Prism.languages.extend('clike', {
+    'keyword': /\b(private|constant|declare|define|c|noreturn|nounwind|alloca|br|store|load|getelementptr|and|icmp|eq|zext|call|unreachable|add|target|datalayout|triple|unnamed_addr|align|inbounds|uwtable|sext|ret|ne|phi|global|to|zeroinitializer|shl|or|ult|switch)\b/,
+    'number': null,
+    'comment': /;.*/,
+    'operator': /\w[\w\d_]*:/,
+    'regex': /[@%]\.?\w+/,
+    'property': /\b(i8|i1|i32|i64|i16|void|label)\*?\b/,
+    'punctuation': null,
+    'function': null,
+  });
+</script>
+<style type="text/css">
+.red {
+  color: red;
+}
+.green {
+  color: green;
+}
+</style>
+<h1>Unsafe Zig is Safer than Unsafe Rust</h1>
+<p class="lead">
+  2018 January 24
+</p>
+
+<p>Consider the following Rust code:</p>
+
+<pre><code class="language-rust">struct Foo {
+    a: i32,
+    b: i32,
+}
+
+fn main() {
+    unsafe {
+        let mut array: [u8; 1024] = [1; 1024];
+        let foo = std::mem::transmute::&lt;&amp;mut u8, &amp;mut Foo&gt;(&amp;mut array[0]);
+        foo.a += 1;
+    }
+}</code></pre>
+
+<p>
+This pattern is pretty common if you are <a href="https://gist.github.com/andrewrk/182ace5dee6c4025d8c4b0ca22ca98ca">interacting with Operating System APIs</a>. <a href="https://github.com/andrewrk/libsoundio/blob/fc96baf8130b52ba6fe928e5f629afd55ecc7321/src/alsa.c#L802">Another example</a>.
+</p>
+
+<p>Can you spot the problem with the code?</p>
+
+<p>It's pretty subtle, but there is actually undefined behavior going on here. Let's take a look at the LLVM IR:</p>
+
+<pre><code class="language-llvm">define internal void @_ZN4test4main17h916a53db53ad90a1E() unnamed_addr #0 {
+start:
+  %transmute_temp = alloca %Foo*
+  %array = alloca [1024 x i8]
+  %0 = getelementptr inbounds [1024 x i8], [1024 x i8]* %array, i32 0, i32 0
+  call void @llvm.memset.p0i8.i64(i8* %0, i8 1, i64 1024, i32 1, i1 false)
+  br label %bb1
+
+bb1:                                              ; preds = %start
+  %1 = getelementptr inbounds [1024 x i8], [1024 x i8]* %array, i64 0, i64 0
+  %2 = bitcast %Foo** %transmute_temp to i8**
+  store i8* %1, i8** %2, align 8
+  %3 = load %Foo*, %Foo** %transmute_temp, !nonnull !1
+  br label %bb2
+
+bb2:                                              ; preds = %bb1
+  %4 = getelementptr inbounds %Foo, %Foo* %3, i32 0, i32 0
+  %5 = load i32, i32* %4
+  %6 = call { i32, i1 } @llvm.sadd.with.overflow.i32(i32 %5, i32 1)
+  %7 = extractvalue { i32, i1 } %6, 0
+  %8 = extractvalue { i32, i1 } %6, 1
+  %9 = call i1 @llvm.expect.i1(i1 %8, i1 false)
+  br i1 %9, label %panic, label %bb3
+
+bb3:                                              ; preds = %bb2
+  %10 = getelementptr inbounds %Foo, %Foo* %3, i32 0, i32 0
+  store i32 %7, i32* %10
+  ret void
+
+panic:                                            ; preds = %bb2
+; call core::panicking::panic
+  call void @_ZN4core9panicking5panic17hfecc01813e436969E({ %str_slice, [0 x i8], %str_slice, [0 x i8], i32, [0 x i8], i32, [0 x i8] }* noalias readonly dereferenceable(40) bitcast ({ %str_slice, %str_slice, i32, i32 }* @panic_loc.2 to { %str_slice, [0 x i8], %str_slice, [0 x i8], i32, [0 x i8], i32, [0 x i8] }*))
+  unreachable
+}</code></pre>
+
+<p>
+That's the code for the main function. Let's zoom in on the problematic parts:
+</p>
+
+<pre><code class="language-llvm">  %array = alloca [1024 x i8]
+  ; loading foo.a in order to do + 1
+  %5 = load i32, i32* %4
+  ; storing the result of + 1 into foo.a
+  store i32 %7, i32* %10
+</code></pre>
+
+<p>
+None of these <a href="http://llvm.org/docs/LangRef.html#alloca-instruction">alloca</a>,
+<a href="http://llvm.org/docs/LangRef.html#load-instruction">load</a>, or
+<a href="http://llvm.org/docs/LangRef.html#store-instruction">store</a>
+instructions have alignment attributes on them, so they use the ABI alignment of the respective types.
+</p>
+
+<p>
+That means the i8 array gets alignment of 1, since the ABI alignment of i8 is 1,
+and the load and store instructions get alignment 4, since the ABI alignment of i32 is 4.
+This is undefined behavior:
+</p>
+
+<ul>
+<blockquote>
+the store has undefined behavior if the alignment is not set to a value which is at least the size in bytes of the pointee
+</blockquote>
+<blockquote>
+the load has undefined behavior if the alignment is not set to a value which is at least the size in bytes of the pointee
+</blockquote>
+</ul>
+
+<p>
+It's a nasty bug, because besides being an easy mistake to make, on some architectures it will only
+cause mysterious slowness, while on others it can cause an illegal instruction exception on the CPU.
+Regardless, it's undefined behavior, and we are professionals, and so we do not accept undefined
+behavior.
+</p>
+
+<p>
+Let's try writing the equivalent code in Zig:
+</p>
+
+<pre><code class="language-zig">const Foo = struct {
+    a: i32,
+    b: i32,
+};
+
+pub fn main() {
+    var array = []u8{1} ** 1024;
+    const foo = @ptrCast(&amp;Foo, &amp;array[0]);
+    foo.a += 1;
+}</code></pre>
+
+<p>And now we compile it:</p>
+
+<pre>/home/andy/tmp/test.zig:8:17: error: cast increases pointer alignment
+    const foo = @ptrCast(&amp;Foo, &amp;array[0]);
+                ^
+/home/andy/tmp/test.zig:8:38: note: '&amp;u8' has alignment 1
+    const foo = @ptrCast(&amp;Foo, &amp;array[0]);
+                                     ^
+/home/andy/tmp/test.zig:8:27: note: '&amp;Foo' has alignment 4
+    const foo = @ptrCast(&amp;Foo, &amp;array[0]);
+                          ^</pre>
+
+<p>
+Zig knows not to compile this code. Here's how to fix it:
+</p>
+
+<pre><code class="language-diff">@@ -4,7 +4,7 @@
+ };
+ 
+ pub fn main() {
+<span class="red">-    var array = []u8{1} ** 1024;</span>
+<span class="green">+    var array align(@alignOf(Foo)) = []u8{1} ** 1024;</span>
+     const foo = @ptrCast(&amp;Foo, &amp;array[0]);
+     foo.a += 1;
+ }</code></pre>
+
+<p>
+Now it compiles fine. Let's have a look at the LLVM IR:
+</p>
+
+<pre><code class="language-llvm">define internal fastcc void @main() unnamed_addr #0 !dbg !8911 {
+Entry:
+  %array = alloca [1024 x i8], align 4
+  %foo = alloca %Foo*, align 8
+  %0 = bitcast [1024 x i8]* %array to i8*, !dbg !8923
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %0, i8* getelementptr inbounds ([1024 x i8], [1024 x i8]* @266, i32 0, i32 0), i64 1024, i32 4, i1 false), !dbg !8923
+  call void @llvm.dbg.declare(metadata [1024 x i8]* %array, metadata !8914, metadata !529), !dbg !8923
+  %1 = getelementptr inbounds [1024 x i8], [1024 x i8]* %array, i64 0, i64 0, !dbg !8924
+  %2 = bitcast i8* %1 to %Foo*, !dbg !8925
+  store %Foo* %2, %Foo** %foo, align 8, !dbg !8926
+  call void @llvm.dbg.declare(metadata %Foo** %foo, metadata !8916, metadata !529), !dbg !8926
+  %3 = load %Foo*, %Foo** %foo, align 8, !dbg !8927
+  %4 = getelementptr inbounds %Foo, %Foo* %3, i32 0, i32 0, !dbg !8927
+  %5 = load i32, i32* %4, align 4, !dbg !8927
+  %6 = call { i32, i1 } @llvm.sadd.with.overflow.i32(i32 %5, i32 1), !dbg !8929
+  %7 = extractvalue { i32, i1 } %6, 0, !dbg !8929
+  %8 = extractvalue { i32, i1 } %6, 1, !dbg !8929
+  br i1 %8, label %OverflowFail, label %OverflowOk, !dbg !8929
+
+OverflowFail:                                     ; preds = %Entry
+  tail call fastcc void @panic(%"[]u8"* @88, %StackTrace* null), !dbg !8929
+  unreachable, !dbg !8929
+
+OverflowOk:                                       ; preds = %Entry
+  store i32 %7, i32* %4, align 4, !dbg !8929
+  ret void, !dbg !8930
+}</code></pre>
+
+<p>Zooming in on the relevant parts:</p>
+
+<pre><code class="language-llvm">  %array = alloca [1024 x i8], align 4
+  %5 = load i32, i32* %4, align 4, !dbg !8927
+  store i32 %7, i32* %4, align 4, !dbg !8929
+</code></pre>
+
+<p>
+Notice that the alloca, load, and store all agree on the alignment.
+</p>
+
+<p>
+In Zig the problem of alignment is solved completely; the compiler catches all
+possible alignment issues.
+In the situation where you need to assert to the compiler that something is more aligned than Zig thinks it is, you can use <a href="http://ziglang.org/documentation/master/#alignCast">@alignCast</a>.
+This inserts a cheap safety check in debug mode to make sure the alignment assertion is correct.
+</p>
+
+<p>Thanks for reading. If you would like to support the development of
+<a href="http://ziglang.org/">Zig</a>, please consider
+<a href="https://www.patreon.com/andrewrk">pledging $1/month on Patreon</a>.</p>

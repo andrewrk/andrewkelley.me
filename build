@@ -21,6 +21,12 @@ swig.init({
 
 var postList = [
   {
+    filename: "unsafe-zig-safer-than-unsafe-rust.html",
+    content: null,
+    date: new Date("2018-01-24T20:17:36.495Z"),
+    title: "Unsafe Zig is Safer Than Unsafe Rust",
+  },
+  {
     filename: "zig-december-2017-in-review.html",
     content: null,
     date: new Date("2018-01-03T07:23:11.402Z"),
