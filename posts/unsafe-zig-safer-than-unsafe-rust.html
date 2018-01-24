@@ -90,7 +90,9 @@ panic:                                            ; preds = %bb2
 }</code></pre>
 
 <p>
-That's the code for the main function. Let's zoom in on the problematic parts:
+That's the code for the main function.
+This is using rustc version 1.21.0.
+Let's zoom in on the problematic parts:
 </p>
 
 <pre><code class="language-llvm">  %array = alloca [1024 x i8]
