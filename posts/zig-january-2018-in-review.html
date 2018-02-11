@@ -266,34 +266,6 @@ So I removed the claims that we support Windows 32-bit from the README, and remo
 
     <p>This has been a controversial change, and <a href="https://github.com/zig-lang/zig/issues/760">may be reverted</a>.</p>
 
-
-
-<h2>New IR Pass Iteration Strategy</h2>
-<h3>Before</h3>
-<ul>
-  <li> IR basic blocks are in arbitrary order</li>
-  <li> when doing an IR pass, when a block is encountered, code
-  must look at all the instructions in the old basic block,
-  determine what blocks are referenced, and queue up those
-  old basic blocks first.</li>
-  <li> This had a bug (See <a href="https://github.com/zig-lang/zig/issues/667">#667</a>)</li>
-</ul>
-<h3>Now</h3>
-<ul>
-  <li> IR basic blocks are required to be in an order that guarantees
-  they will be referenced by a branch, before any instructions
-  within are referenced.
-  ir pass1 is updated to meet this constraint.</li>
-  <li> When doing an IR pass, we iterate over old basic blocks
-  in the order they appear. Blocks which have not been
-  referenced are discarded.</li>
-  <li> After the pass is complete, we must iterate again to look
-  for old basic blocks which now point to incomplete new
-  basic blocks, due to comptime code generation.</li>
-  <li> This last part can probably be optimized - most of the time
-    we don't need to iterate over the basic block again.</li>
-</ul>
-
 <h2>Generating .h Files</h2>
 <ul>
   <li>Now Zig emits compile errors for non-extern, non-packed struct, enum, unions in <code>extern</code> fn signatures.</li>
