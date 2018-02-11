@@ -1,0 +1,630 @@
+<script>
+  Prism.languages['zig'] = Prism.languages.extend('clike', {
+    'keyword': /\b(fn|import|cImport|const|var|extern|volatile|export|pub|noalias|inline|struct|enum|break|return|catch|try|continue|asm|defer|if|else|switch|while|for|null|undefined|true|false|comptime|noinline)\b/,
+    'property': /\b(bool|i8|u8|i16|u16|i32|u32|i64|u64|isize|usize|f32|f64|void|unreachable|type|error|c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong)\b/,
+  });
+</script>
+<h1>Zig: January 2018 in Review</h1>
+
+<p>
+One month (and a few days, sorry I'm late!) has passed since I did the
+<a href="zig-december-2017-in-review.html">December 2017 writeup</a>, and so it's time for
+another month-in-review for <a href="https://www.patreon.com/andrewrk">my esteemed patrons</a>.
+</p>
+
+<h2>LLVM 6 Readiness</h2>
+<p><a href="http://prereleases.llvm.org/6.0.0/">LLVM 6.0.0rc2</a> was just announced on the mailing list.
+It's scheduled to be released on February 21, and Zig is ready.
+I plan to have Zig release 0.2.0 one week after LLVM 6 comes out.
+We already have all tests passing with debug builds of LLVM 6 in the
+<a href="https://github.com/zig-lang/zig/tree/llvm6">llvm6 branch</a>,
+but that extra week is for a bug-stomping rampage.
+</p>
+<p>
+After that, all the 0.3.0 milestone issues get postponed to 0.4.0, and all the
+0.2.0 milestone issues get moved to 0.3.0.
+</p>
+<p>
+0.2.0 will be an exciting release because, among many other things, it enables
+source-level debugging with MSVC on Windows.
+</p>
+<p>
+Zig is once again in the <a href="http://prereleases.llvm.org/6.0.0/rc2/docs/ReleaseNotes.html#zig-programming-language">release notes of LLVM</a>, so we should see a slight increase in community size when LLVM release notes hit the tech news headlines.
+</p>
+<h2>Error Syntax Cleanup</h2>
+<p>
+One of the biggest complaints newcomers to Zig had was about its sigils regarding error handling.
+Given this, I made an effort to choose friendlier syntax.
+</p>
+<ul>
+  <li><code>%return</code> is replaced with <code>try</code></li>
+  <li><code>%defer</code> is replaced with <code>errdefer</code></li>
+  <li><code>a %% b</code> is replaced with <code>a catch b</code></li>
+  <li><code>%%x</code> is removed entirely to discourage its use.
+    You can get an equivalent effect with <code>x catch unreachable</code>,
+    which has been updated to understand that it was attempting to unwrap an error union.
+    See <a href="https://github.com/zig-lang/zig/issues/545">#545</a>  and <a href="https://github.com/zig-lang/zig/issues/510">#510</a></li>
+</ul>
+<p>
+After these changes, there is a strong pattern that only keywords can modify control flow.
+For example we have <code>and</code> and <code>or</code> instead of <code>&amp;&amp;</code> and <code>||</code>. There is one last exception, which is <code>a ?? b</code>. Maybe it's okay, since <a href="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/operators/null-conditional-operator">C# set a precedent</a>.
+</p>
+<p>
+An even bigger change is coming soon which I'm calling
+<a href="https://github.com/zig-lang/zig/issues/632">Error Sets</a>.
+</p>
+<h2>Error Return Traces</h2>
+<p>
+I'm really excited about this one. I invented a new kind of debugging tool and integrated it into Debug and ReleaseSafe builds.
+</p>
+<p>
+One of the concerns with removing the <code>%%</code> prefix operator was that it was
+just so gosh darn convenient to get a stack trace right at the moment where you
+asserted that a value did not have an error. I wanted to make it so that programmers
+could use <code>try</code> everywhere and still get the debuggability benefit when
+an error occurred.
+</p>
+<p>
+Watch this:
+</p>
+<pre><code class="language-zig">const std = @import("std");
+
+pub fn main() !void {
+    const allocator = std.debug.global_allocator;
+
+    const args = try std.os.argsAlloc(allocator);
+    defer std.os.argsFree(allocator, args);
+
+    const count = try parseFile(allocator, args[1]);
+
+    if (count &lt; 10) return error.NotEnoughItems;
+}
+
+fn parseFile(allocator: &amp;std.mem.Allocator, file_path: []const u8) !usize {
+    const contents = std.io.readFileAlloc(allocator, file_path) catch return error.UnableToReadFile;
+    defer allocator.free(contents);
+
+    return contents.len;
+}</code></pre>
+<p>
+Here's a simple program with a bunch of different ways that errors could get returned
+from <code>main</code>. In our test example, we're going to open a bogus file that
+does not exist.
+</p>
+<pre>
+$ zig build-exe test2.zig
+$ ./test2 bogus-does-not-exist.txt
+error: UnableToReadFile
+/home/andy/dev/zig/build/lib/zig/std/os/index.zig:301:33: 0x000000000021acd0 in ??? (test2)
+                posix.ENOENT =&gt; return PosixOpenError.PathNotFound,
+                                ^
+/home/andy/dev/zig/build/lib/zig/std/os/file.zig:25:24: 0x00000000002096f6 in ??? (test2)
+            const fd = try os.posixOpen(allocator, path, flags, 0);
+                       ^
+/home/andy/dev/zig/build/lib/zig/std/io.zig:267:16: 0x000000000021ebec in ??? (test2)
+    var file = try File.openRead(allocator, path);
+               ^
+/home/andy/dev/zig/build/test2.zig:15:71: 0x000000000021ce72 in ??? (test2)
+    const contents = std.io.readFileAlloc(allocator, file_path) catch return error.UnableToReadFile;
+                                                                      ^
+/home/andy/dev/zig/build/test2.zig:9:19: 0x000000000021c1f9 in ??? (test2)
+    const count = try parseFile(allocator, args[1]);
+                  ^
+</pre>
+<p>
+I'm going to include a picture of the above here, because it looks a lot better with
+terminal colors:
+</p>
+<img src="https://superjoe.s3.amazonaws.com/blog-files/zig-january-2018-in-review/error-return-traces.png">
+<p>
+This is not a stack trace snapshot from when an error was "created". This is a <strong>return trace</strong> of all the points in the code where an error was returned from a function.
+</p>
+<p>
+Note that, if it only told you the origin of the error that we ultimately received - <code>UnableToReadFile</code> - we would only see the bottom 2 items in the trace.
+Not only do we have this information, we have all the information about the origin of
+the error, right up to the fact that we received <code>ENOENT</code> from <code>open</code>.
+</p>
+<p>
+With this in place, programmers can comfortably use <code>try</code> everywhere, safe
+in the knowledge that it will be straightforward to troubleshoot the origin of any error
+bubbling up through the system.
+</p>
+<p>
+I hope you're skeptically wondering, OK, what's the tradeoff in terms of binary size, performance, and memory?
+</p>
+<p>
+First of all, this feature is disabled in ReleaseFast mode. So the answer is,
+literally no cost, in this case. But what about Debug and ReleaseSafe builds?
+</p>
+<p>
+To analyze performance cost, there are two cases:
+</p>
+<ul>
+  <li>when no errors are returned</li>
+  <li>when returning errors</li>
+</ul>
+<p>
+For the case when no errors are returned, the cost is a single memory write operation, only in the first non-failable function in the call graph that calls a failable function, i.e. when a function returning <code>void</code> calls a function returning <code>error</code>.
+This is to initialize this struct in the stack memory:
+</p>
+<pre><code class="language-zig">pub const StackTrace = struct {
+    index: usize,
+    instruction_addresses: [N]usize,
+};</code></pre>
+<p>
+Here, N is the maximum function call depth as determined by call graph analysis. Recursion is ignored and counts for 2.
+</p>
+<p>
+A pointer to <code>StackTrace</code> is passed as a secret parameter to every function that can return an error, but it's always the first parameter, so it can likely sit in a register and stay there.
+</p>
+<p>
+That's it for the path when no errors occur. It's practically free in terms of performance.
+</p>
+<p>
+When generating the code for a function that returns an error, just before the <code>return</code> statement (only for the <code>return</code> statements that return errors), Zig generates a call to this function:
+</p>
+<pre><code class="language-zig">noinline fn __zig_return_error(stack_trace: &amp;StackTrace) void {
+    stack_trace.instruction_addresses[stack_trace.index] = @returnAddress();
+    stack_trace.index = (stack_trace.index + 1) % N;
+}</code></pre>
+<p>
+The cost is 2 math operations plus some memory reads and writes. The memory accessed is constrained and should remain cached for the duration of the error return bubbling.
+</p>
+<p>
+As for code size cost, 1 function call before a return statement is no big deal. Even so,
+I have <a href="https://github.com/zig-lang/zig/issues/690">a plan</a> to make the call to
+<code>__zig_return_error</code> a tail call, which brings the code size cost down to actually zero. What is a return statement in code without error return tracing can become a jump instruction in code with error return tracing.
+</p>
+<p>
+There are a few ways to activate this error return tracing feature:
+</p>
+<ul>
+  <li>Return an error from main</li>
+  <li>An error makes its way to <code>catch unreachable</code> and you have not overridden the default panic handler</li>
+  <li>Use <a href="http://ziglang.org/documentation/master/#errorReturnTrace">@errorReturnTrace</a> to access the current return trace. You can use <code>std.debug.dumpStackTrace</code> to print it. This function returns comptime-known <code>null</code> when building without error return tracing support.</li>
+</ul>
+
+<p>Related issues: <a href="https://github.com/zig-lang/zig/issues/651">#651</a>  <a href="https://github.com/zig-lang/zig/issues/684">#684</a>
+</p>
+
+<h2>Documentation</h2>
+<p>
+Big news on the documentation front.
+</p>
+<p>
+All the outdated docs are fixed, and we have automatic
+<a href="https://github.com/zig-lang/zig/blob/46aa416c48c283849059292267ac25a6d0db76d6/doc/docgen.zig">docgen tool</a>
+which:
+</p>
+<ul>
+  <li>Automatically generates the table of contents</li>
+  <li>Validates all internal links</li>
+  <li>Validates all code examples</li>
+  <li>Turns terminal coloring of stack traces and compile errors into HTML</li>
+</ul>
+<p>The tool is, of course, written in Zig. <a href="https://github.com/zig-lang/zig/issues/465">#465</a></p>
+<p>In addition to the above, the following improvements were made to the documentation:</p>
+<ul>
+  <li>Added documentation for <a href="http://ziglang.org/documentation/master/#noInlineCall">@noInlineCall</a></li>
+  <li>Added documentation for <a href="http://ziglang.org/documentation/master/#extern-enum">extern enum</a></a>
+  <li>Improved the documentation styling</li>
+  <li>Made the documentation a single file that has no external dependencies</li>
+  <li>Add the documentation to appveyor build artifacts as <code>langref.html</code>. In other words we ship with the docs now.</li>
+</ul>
+<p><strong>Marc Tiehuis</strong> improved documentation styling for mobile devices. <a href="https://github.com/zig-lang/zig/issues/729">#729</a></p>
+<ul>
+  <li> No overscrolling on small screens</li>
+  <li> Font-size is reduced for more content per screen</li>
+  <li> Tables + Code blocks scroll within a block to avoid page-widenening</li>
+</ul>
+<p>
+There is still much more to document, before we have achieved <a href="https://github.com/zig-lang/zig/issues/367">basic documentation for everything</a>.
+</p>
+
+<h2>Self-Hosted Compiler</h2>
+<p>The self-hosted compiler now fully successfully builds on Windows and MacOS.</p>
+<p>The main test suite builds the self-hosted compiler.</p>
+<p>The self-hosted build inherits the std lib file list and C header file list from the stage1 cmake build, as well as the <code>llvm-config</code> output. So if you get stage1 to build,
+stage2 will reliably build as well.</p>
+
+<h2>Windows 32-bit Support Status</h2>
+<p>
+Windows 32-bit mostly works, but there are some failing tests. The number of failing tests
+grew and it didn't seem fair to claim that we supported it officially.
+</p>
+<p>
+So I removed the claims that we support Windows 32-bit from the README, and removed
+32-bit Windows from the testing matrix.
+</p>
+<p>
+<a href="https://github.com/zig-lang/zig/issues/537">We still want to support Windows 32-bit</a>.
+</p>
+
+<h2>Syntax: Mandatory Function Return Type </h2>
+<p><code>-&gt;</code> is removed, and all functions require an explicit return type.</p>
+<p>The purpose of this is:</p>
+<ul>
+  <li> Only one way to do things</li>
+  <li> Changing a function with void return type to return a possible
+       error becomes a 1 character change, subtly encouraging
+       people to use errors.</li>
+</ul>
+  <p>
+    Here are some imperfect sed commands for performing this update:
+  </p>
+  <p>
+    remove arrow:
+  </p>
+  <pre>sed -i 's/\(\bfn\b.*\)-&gt; /\1/g' $(find . -name "*.zig")</pre>
+  <p>
+    add void:
+  </p>
+  <pre>sed -i 's/\(\bfn\b.*\))\s*{/\1) void {/g' $(find . -name "*.zig")</pre>
+  <p>
+    Some cleanup may be necessary, but this should do the bulk of the work.
+  </p>
+
+    <p>This has been a controversial change, and <a href="https://github.com/zig-lang/zig/issues/760">may be reverted</a>.</p>
+
+
+
+<h2>New IR Pass Iteration Strategy</h2>
+<h3>Before</h3>
+<ul>
+  <li> IR basic blocks are in arbitrary order</li>
+  <li> when doing an IR pass, when a block is encountered, code
+  must look at all the instructions in the old basic block,
+  determine what blocks are referenced, and queue up those
+  old basic blocks first.</li>
+  <li> This had a bug (See <a href="https://github.com/zig-lang/zig/issues/667">#667</a>)</li>
+</ul>
+<h3>Now</h3>
+<ul>
+  <li> IR basic blocks are required to be in an order that guarantees
+  they will be referenced by a branch, before any instructions
+  within are referenced.
+  ir pass1 is updated to meet this constraint.</li>
+  <li> When doing an IR pass, we iterate over old basic blocks
+  in the order they appear. Blocks which have not been
+  referenced are discarded.</li>
+  <li> After the pass is complete, we must iterate again to look
+  for old basic blocks which now point to incomplete new
+  basic blocks, due to comptime code generation.</li>
+  <li> This last part can probably be optimized - most of the time
+    we don't need to iterate over the basic block again.</li>
+</ul>
+
+<h2>Generating .h Files</h2>
+<ul>
+  <li>Now Zig emits compile errors for non-extern, non-packed struct, enum, unions in <code>extern</code> fn signatures.</li>
+  <li>Zig generates .h file content for <code>extern</code> struct, enum, unions</li>
+  <li>.h file generation is now tested in the main test suite.</li>
+</ul>
+<p>Marc Tiehuis added array type handling:</p>
+<pre><code class="language-zig">const Foo = extern struct {
+    A: [2]i32,
+    B: [4]&amp;u32,
+};
+export fn entry(foo: Foo, bar: [3]u8) void { }</code></pre>
+<p>This generates:</p>
+<pre><code class="language-c">struct Foo {
+    int32_t A[2];
+    uint32_t * B[4];
+};
+
+TEST_EXPORT void entry(struct Foo foo, uint8_t bar[]);</code></pre>
+
+<h2>Translating C to Zig</h2>
+<p><strong>Jimmi Holst Christensen</strong> <a href="https://github.com/zig-lang/zig/pull/695">improved translate-c</a>:</p>
+<ul>
+  <li> output "undefined" on uninitialized variables</li>
+  <li> correct translation of if statements on integers and floats</li>
+</ul>
+
+<h2>Crypto Additions to Zig std lib</h2>
+<p><strong>Marc Tiehuis</strong> added a bunch of crypto functions:</p>
+<ul>
+<li>added hardware sqrt for x86_64.
+  (See <a href="https://github.com/zig-lang/zig/issues/681">#681</a>)</li>
+<li>fixed bitrotted endian swapping std lib code
+  (See <a href="https://github.com/zig-lang/zig/issues/682">#682</a>)</li>
+</ul>
+<h3>Integer Rotation Functions</h3>
+<pre><code class="language-zig">/// Rotates right. Only unsigned values can be rotated.
+/// Negative shift values results in shift modulo the bit count.
+pub fn rotr(comptime T: type, x: T, r: var) -&gt; T {
+test "math.rotr" {
+    assert(rotr(u8, 0b00000001, usize(0))  == 0b00000001);
+    assert(rotr(u8, 0b00000001, usize(9))  == 0b10000000);
+    assert(rotr(u8, 0b00000001, usize(8))  == 0b00000001);
+    assert(rotr(u8, 0b00000001, usize(4))  == 0b00010000);
+    assert(rotr(u8, 0b00000001, isize(-1)) == 0b00000010);
+}
+/// Rotates left. Only unsigned values can be rotated.
+/// Negative shift values results in shift modulo the bit count.
+pub fn rotl(comptime T: type, x: T, r: var) -&gt; T {
+test "math.rotl" {
+    assert(rotl(u8, 0b00000001, usize(0))  == 0b00000001);
+    assert(rotl(u8, 0b00000001, usize(9))  == 0b00000010);
+    assert(rotl(u8, 0b00000001, usize(8))  == 0b00000001);
+    assert(rotl(u8, 0b00000001, usize(4))  == 0b00010000);
+    assert(rotl(u8, 0b00000001, isize(-1)) == 0b10000000);
+}</code></pre>
+<h3>MD5 and SHA1 Hash Functions</h3>
+<p><a href="https://github.com/zig-lang/zig/pull/686">Marc writes</a>:</p>
+<p>Some performance comparisons to C.</p>
+
+<p>We take the fastest time measurement taken across multiple runs.</p>
+
+<p>The block hashing functions use the same md5/sha1 methods.</p>
+
+<pre><code>Cpu: Intel(R) Core(TM) i5-6500 CPU @ 3.20GHz
+Gcc: 7.2.1 20171224
+Clang: 5.0.1
+Zig: 0.1.1.304f6f1d
+</code></pre>
+
+<p>See <a href="https://www.nayuki.io/page/fast-md5-hash-implementation-in-x86-assembly">https://www.nayuki.io/page/fast-md5-hash-implementation-in-x86-assembly</a>:</p>
+
+<pre><code>gcc -O2
+    661 Mb/s
+clang -O2
+    490 Mb/s
+zig --release-fast and zig --release-safe
+    570 Mb/s
+zig
+    50 Mb/s
+</code></pre>
+
+<p>See <a href="https://www.nayuki.io/page/fast-sha1-hash-implementation-in-x86-assembly">https://www.nayuki.io/page/fast-sha1-hash-implementation-in-x86-assembly</a>
+:</p>
+
+<pre><code>gcc -O2
+    588 Mb/s
+clang -O2
+    563 Mb/s
+zig --release-fast and zig --release-safe
+    610 Mb/s
+zig
+    21 Mb/s
+</code></pre>
+
+<p>In short, zig provides pretty useful tools for writing this sort of
+code. We are in the lead against clang (which uses the same LLVM
+backend) with us being slower only against md5 with GCC.</p>
+
+<h3>SHA-2 Functions</h3>
+<p><a href="https://github.com/zig-lang/zig/pull/687">Marc writes</a>:</p>
+<p>We take the fastest time measurement taken across multiple runs. Tested
+across multiple compiler flags and the best chosen.</p>
+
+<pre><code>Cpu: Intel(R) Core(TM) i5-6500 CPU @ 3.20GHz
+Gcc: 7.2.1 20171224
+Clang: 5.0.1
+Zig: 0.1.1.304f6f1d
+</code></pre>
+
+<p>See <a href="https://www.nayuki.io/page/fast-sha2-hashes-in-x86-assembly">https://www.nayuki.io/page/fast-sha2-hashes-in-x86-assembly</a>.</p>
+
+<pre><code>Gcc -O2
+    219 Mb/s
+Clang -O2
+    213 Mb/s
+Zig --release-fast
+    284 Mb/s
+Zig --release-safe
+    211 Mb/s
+Zig
+    6 Mb/s
+</code></pre>
+
+<pre><code>Gcc -O2
+    350 Mb/s
+Clang -O2
+    354 Mb/s
+Zig --release-fast
+    426 Mb/s
+Zig --release-safe
+    300 Mb/s
+Zig
+    11 Mb/s
+</code></pre>
+
+<h3>Blake2 Hash Functions</h3>
+<p><a href="https://github.com/zig-lang/zig/pull/689">Marc writes</a>:</p>
+
+<p>Blake performance numbers for reference:</p>
+
+<pre><code>Cpu: Intel(R) Core(TM) i5-6500 CPU @ 3.20GHz
+</code></pre>
+
+<p>-- Blake2s</p>
+
+<pre><code>Zig --release-fast
+    485 Mb/s
+Zig --release-safe
+    377 Mb/s
+Zig
+    11 Mb/s
+</code></pre>
+
+<p>-- Blake2b</p>
+
+<pre><code>Zig --release-fast
+    616 Mb/s
+Zig --release-safe
+    573 Mb/s
+Zig
+    18 Mb/s
+</code></pre>
+
+<h3>Sha3 Hashing Functions</h3>
+<p><a href="https://github.com/zig-lang/zig/pull/696">Marc writes:</a></p>
+<p>These are on the slower side and could be improved. No performance optimizations
+yet have been done.</p>
+
+<pre><code>Cpu: Intel(R) Core(TM) i5-6500 CPU @ 3.20GHz
+</code></pre>
+
+<p>-- Sha3-256</p>
+
+<pre><code>Zig --release-fast
+    93 Mb/s
+Zig --release-safe
+    99 Mb/s
+Zig
+    4 Mb/s
+</code></pre>
+
+<p>-- Sha3-512</p>
+
+<pre><code>Zig --release-fast
+    49 Mb/s
+Zig --release-safe
+    54 Mb/s
+Zig
+    2 Mb/s
+</code></pre>
+
+<p>Interestingly, release-safe is producing slightly better code than
+release-fast.</p>
+
+<h2>Improvements</h2>
+<ul>
+  <li>The return type of <code>main</code> can now be <code>void</code>, <code>noreturn</code>, <code>u8</code>, or an error union. <a href="https://github.com/zig-lang/zig/issues/535">#535</a></li>
+  <li>Implemented bigint div and rem. <a href="https://github.com/zig-lang/zig/issues/405">#405</a></li>
+  <li>Removed coldcc keyword and added <a href="http://ziglang.org/documentation/master/#setCold">@setCold</a>. <a href="https://github.com/zig-lang/zig/issues/661">#661</a></li>
+  <li>Renamed "debug safety" to "runtime safety". <a href="https://github.com/zig-lang/zig/issues/437">#437</a></li>
+  <li>Updated windows build to use llvm 5.0.1.
+    <a href="http://lists.llvm.org/pipermail/llvm-dev/2018-January/120153.html">Reported usability issue regarding diaguids.lib to llvm-dev.</a></li>
+  <li>Implemented <code>std.os.selfExePath</code> and <code>std.os.selfExeDirPath</code> for windows.</li>
+  <li>Added more test coverage.</li>
+  <li>
+    The same string literal codegens to the same constant.
+    This makes it so that you can send the same string literal
+    as a comptime slice and get the same type.
+  </li>
+</ul>
+<p>Zig now supports structs defined inside a function that reference local constants:</p>
+<pre><code class="language-zig">const assert = @import("std").debug.assert;
+
+test "struct inside function" {
+    const BlockKind = u32;
+
+    const Block = struct {
+        kind: BlockKind,
+    };
+
+    var block = Block { .kind = 1234 };
+
+    block.kind += 1;
+
+    assert(block.kind == 1235);
+}</code></pre>
+<p>This fixed <a href="https://github.com/zig-lang/zig/issues/672">#672</a>  and <a href="https://github.com/zig-lang/zig/issues/552">#552</a>. However there is still issue <a href="https://github.com/zig-lang/zig/issues/675">#675</a>  which is that structs inside
+functions get named after the function they are in:</p>
+<pre><code class="language-zig">test "struct inside function" {
+    const Block = struct { kind: u32 };
+    @compileLog(@typeName(Block));
+}</code></pre>
+<p>When executed gives</p>
+<pre>
+| "struct inside function()"
+</pre>
+<p>
+Moving on, Zig now allows enum tag values to not be in parentheses:
+</p>
+<pre><code class="language-zig">const EnumWithTagValues = enum(u4) {
+    A = 1 &lt;&lt; 0,
+    B = 1 &lt;&lt; 1,
+    C = 1 &lt;&lt; 2,
+    D = 1 &lt;&lt; 3,
+};</code></pre>
+<p>Previously this required <code>A = (1 &lt;&lt; 0)</code>.
+</code></pre>
+
+<h2>Bug Fixes</h2>
+<ul>
+  <li>fix exp1m implementation by using <code>@setFloatMode</code> and using modular arithmetic</li>
+  <li>fix compiler crash related to <code>@alignOf</code></li>
+  <li>fix null debug info for 0-length array type. <a href="https://github.com/zig-lang/zig/issues/702">#702</a></li>
+  <li>fix compiler not able to rename files into place on windows if the file already existed</li>
+  <li>fix crash when switching on enum with 1 field and no switch prongs. <a href="https://github.com/zig-lang/zig/issues/712">#712</a></li>
+  <li>fix crash on union-enums with only 1 field. <a href="https://github.com/zig-lang/zig/issues/713">#713</a></li>
+  <li>fix crash when align 1 field before self referential align 8 field as slice return type. <a href="https://github.com/zig-lang/zig/issues/723">#723</a></li>
+  <li>fix error message mentioning <code>unreachable</code> instead of <code>noreturn</code></li>
+  <li>fix std.io.readFileAllocExtra incorrectly returning <code>error.EndOfStream</code></li>
+  <li>workaround for <a href="http://ziglang.org/documentation/master/#extern-enum">microsoft releasing windows SDK with the wrong version</a></li>
+  <li>Found a bug in NewGVN. Disabled it to match clang and filed an llvm bug.</li>
+  <li>emit compile error for @panic called at compile time. <a href="https://github.com/zig-lang/zig/issues/706">#706</a></li>
+  <li>emit compile error for shifting by negative comptime integer. <a href="https://github.com/zig-lang/zig/issues/698">#698</a></li>
+  <li>emit compile error for calling naked function. @ptrCast a naked function first to call it.</li>
+  <li>emit compile error for duplicate struct, enum, union fields. <a href="https://github.com/zig-lang/zig/issues/730">#730</a></li>
+</ul>
+
+ 
+ <h2>Thank you contributors!</h2>
+ <ul>
+   <li><strong>Jimmi Holst Christensen</strong> fixed bitrotted code: `std.Rand.scalar` and `std.endian.swap`.
+     (See <a href="https://github.com/zig-lang/zig/issues/674">#674</a>)</li>
+   <li><strong>Andrea Orru</strong> removed the deprecated Darwin target and added Zen OS target.
+     (See <a href="https://github.com/zig-lang/zig/issues/438">#438</a>)</li>
+   <li><strong>Andrea Orru</strong> added intrusive linked lists to the standard library.
+     (See <a href="https://github.com/zig-lang/zig/issues/680">#680</a>)</li>
+   <li><strong>Jimmi Holst Christensen</strong> fixed bigint xor with zero.
+     (See <a href="https://github.com/zig-lang/zig/issues/701">#701</a>)</li>
+   <li><strong>Jimmi Holst Christensen</strong> implemented windows versions of seekTo and getPos
+     (See <a href="https://github.com/zig-lang/zig/issues/710">#710</a>)</li>
+   <li><strong>Jeff Fowler</strong> sent a pull request to GitHub/linguist to add Zig syntax highlighting.
+     (See <a href="https://github.com/github/linguist/pull/4005">github/linguist/pull/4005</a>)</li>
+ </ul>
+
+   <h2>Thank you financial supporters!</h2>
+
+<p>
+Special thanks to those who <a href="https://www.patreon.com/andrewrk">donate monthly</a>. We're now at $207 of the $3,000 goal.
+</p>
+
+<ul>
+  <li>Lauren Chavis</li>
+  <li>Andrea Orru</li>
+  <li>Adrian Sinclair</li>
+  <li>David Joseph</li>
+  <li>jeff kelley</li>
+  <li>Hasen Judy</li>
+  <li>Wesley Kelley</li>
+  <li>Harry Eakins</li>
+  <li>Richard Ohnemus</li>
+  <li>Brendon Scheinman</li>
+  <li>Martin Schwaighofer</li>
+  <li>Matthew </li>
+  <li>Mirek Rusin</li>
+  <li>Jordan Torbiak</li>
+  <li>Pyry Kontio</li>
+  <li>Thomas Ballinger</li>
+  <li>Peter Ronnquist</li>
+  <li>Luke McCarthy</li>
+  <li>Robert Paul Herman</li>
+  <li>Audun Wilhelmsen</li>
+  <li>Marko Mikulicic</li>
+  <li>Jimmi Holst Christensen</li>
+  <li>Caius </li>
+  <li>Don Poor</li>
+  <li>Anthony J. Benik</li>
+  <li>David Hayden</li>
+  <li>Tanner Schultz</li>
+  <li>Tyler Philbrick</li>
+  <li>Eduard Nicodei</li>
+  <li>Christopher A. Butler</li>
+  <li>Colleen Silva-Hayden</li>
+  <li>Jeremy Larkin</li>
+  <li>Rasmus Rønn Nielsen</li>
+  <li>Brian Lewis</li>
+  <li>Tom Palmer</li>
+  <li>Josh McDonald</li>
+  <li>Chad Russell</li>
+  <li>Alexandra Gillis</li>
+  <li>david karapetyan</li>
+  <li>Zi He Goh</li>
+</ul>
+
