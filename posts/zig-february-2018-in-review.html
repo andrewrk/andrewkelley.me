@@ -1,0 +1,203 @@
+<script>
+  Prism.languages['zig'] = Prism.languages.extend('clike', {
+    'keyword': /\b(fn|import|cImport|const|var|extern|volatile|export|pub|noalias|inline|struct|enum|break|return|catch|try|continue|asm|defer|if|else|switch|while|for|null|undefined|true|false|comptime|noinline|async|await|cancel|resume|suspend)\b/,
+    'property': /\b(bool|i8|u8|i16|u16|i32|u32|i64|u64|isize|usize|f32|f64|void|unreachable|type|error|c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong)\b/,
+  });
+</script>
+<h1>Zig: February 2018 in Review</h1>
+
+<p>
+It's time to update <a href="https://www.patreon.com/andrewrk">my esteemed patrons</a> about what has changed in Zig over the last month. If you didn't catch
+<a href="zig-january-2018-in-review.html">January's writeup</a>,
+you might have a look at that first.
+</p>
+
+<h2>LLVM 6.0.0 has been tagged</h2>
+<p>
+LLVM 6.0.0 has been tagged in subversion and will be announced shortly. As soon as that happens,
+I will merge the llvm6 branch of Zig into master. Then we'll have a 1 week bug fixing extravaganza, followed by Zig 0.2.0 release.
+</p>
+<p>
+Zig's test suite passes with the llvm6 branch on all supported target platforms. All LLVM assertions pass correctly.
+</p>
+<p>
+Hopefully the Zig community will see a small boost in growth from being in the Release Notes of LLVM 6.0.0. Typically major releases of LLVM make it into various tech news headlines.
+</p>
+
+ * error sets explanation
+   - switching on error handles all cases
+   - explanation of global error set
+   - inferred error sets
+
+ * announce ben noordhuis joining the team
+   - announce everybody else too
+
+ * self hosted compiler: move tokenization and parsing to std lib
+   - the tests test every combination of memory allocation failure using std.debug.FailingAllocator
+   - improve self hosted parser:
+     - builtin fn calls
+     - string literals
+     - inferred return type and error inference
+     - try
+   - add `zig fmt` to self hosted compiler
+     - show an example of preserving double line breaks and comments
+
+ * introduce std.heap.ArenaAllocator and std.heap.DirectAllocator 
+     * DirectAllocator does the underlying syscall for every allocation.
+     * ArenaAllocator takes another allocator as an argument and
+       allocates bytes up front, falling back to DirectAllocator with
+       increasingly large allocation sizes, to avoid calling it too often.
+       Then the entire arena can be freed at once.
+    
+    The self hosted parser is updated to take advantage of ArenaAllocator
+    for the AST that it returns. This significantly reduces the complexity
+    of cleanup code.
+    
+    docgen and build runner are updated to use the combination of
+    ArenaAllocator and DirectAllocator instead of IncrementingAllocator,
+    which is now deprecated in favor of FixedBufferAllocator combined
+    with DirectAllocator.
+    
+    The C allocator calls aligned_alloc instead of malloc, in order to
+    respect the alignment parameter.
+    
+    Added asserts in Allocator to ensure that implementors of the
+    interface return slices of the correct size.
+    
+    Fixed a bug in Allocator when you call realloc to grow the allocation.
+
+    remove std.heap.IncrementingAllocator
+    
+    Use std.heap.FixedBufferAllocator combined with
+    std.heap.DirectAllocator instead.
+    
+    std.mem.FixedBufferAllocator is moved to std.heap.FixedBufferAllocator
+
+ * Add async/await - give a small explanation but leave the main meat for a future blog post.
+
+ * Add @atomicRmw builtin. show docs for it
+
+
+
+   Show an example of this: commit 0efe441dfd422d4bfe501d5fbfbf15bd5951b494 if statements support comptime known test error, runtime payload
+   show an example of this: commit a2bd9f8912ade5149855dc6e2371aaae49093660 std lib: modify allocator idiom (no more null allocator)
+
+
+
+   misc:
+  * disabled mingw builds  in the CI. Something broke in the mingw package manager, not zig's fault.
+  * std.zig.tokenizer: don't require 3 newlines at the end of the source
+  * add ability to slice an undefined pointer at compile time if the len is 0.
+
+  std lib api changes
+     * move std.io.File to std.os.File
+     * introduce std.io.BufferedAtomicFile API
+     * introduce std.os.AtomicFile API
+     * add `std.os.default_file_mode`
+     * change FileMode on posix from being a usize to a u32
+     * add std.os.File.mode to return mode of an open file
+     * std.os.copyFile copies the mode from the source file instead of
+       using the default file mode for the dest file
+     * move `std.os.line_sep` to `std.cstr.line_sep`
+     * Fix return type of <code>std.c.write</code> to be <code>isize</code> instead of <code>c_int</code>.
+     * Add <code>std.os.linux.EPOLL_CLOEXEC</code> and <code>std.os.linux.epoll_create1</code>.
+     * Remove signal handling API from std.os.ChildProcess
+
+
+  Documentation
+  * update errors section. #768
+
+  Bug fixes
+ 
+   * Fix <code>std.os.posixRead</code> returning <code>EINVAL</code> for large reads. Thanks to <strong>Ben Noordhuis</strong> for pointing it out.
+   * Fix exported variable not named in the object file #771
+   * Replace <code>new</code> with <code>new(std::nothrow)</code> in the c++ code that the self-hosted compiler and the c++ compiler share.
+   * Fix compiler crash when doing comptime floating point value remainder division with comptime integer. #776
+   * Fix compiler crash when struct contains a pointer to another struct which contains the original struct
+   * Fix inconsistent handling of functions like <code>@ptrToInt</code> when used on function pointers and nullable pointers.
+ 
+ <h2>Thank you contributors!</h2>
+ <ul>
+   <li><strong>Ben Noordhuis</strong> added reading from <code>/dev/urandom</code> for <code>std.os.getRandomBytes</code> when the Linux
+      <code>getrandom</code> is not available.
+      (See <a href="https://github.com/zig-lang/zig/issues/743">#743</a>)</li>
+   <li><strong>Ben Noordhuis</strong> refactored compiler internals to better adhere to Don't Repeat Yourself principles.
+      (See <a href="https://github.com/zig-lang/zig/issues/750">#750</a>)</li>
+   <li><strong>Ben Noordhuis</strong> updated <code>std.fmt.format</code> to format struct pointers as <code>&lt;typename&gt;@&lt;address&gt;</code>.
+      (See <a href="https://github.com/zig-lang/zig/issues/752">#752</a>)</li>
+   <li><strong>Jeff Fowler</strong> added a <code>init</code> subcommand to <code>zig build</code>, instead of the confusing default of writing
+     a <code>build.zig</code> template.
+      (See <a href="https://github.com/zig-lang/zig/issues/754">#754</a>)</li>
+   <li><strong>Ben Noordhuis</strong> implemented <code>std.os.openSelfExe</code> for Darwin.
+      (See <a href="https://github.com/zig-lang/zig/issues/753">#753</a>)</li>
+   <li><strong>Marc Tiehuis</strong> added three <code>std.ArrayList</code> functions.
+      (See <a href="https://github.com/zig-lang/zig/issues/755">#755</a>)
+      <ul>
+        <li><code>at</code> - Get the item at the n-th index</li>
+        <li><code>insert</code> - Insert an item into the middle of the list, resizing and copying existing elements if needed.</li>
+        <li><code>insertSlice</code> - Insert a slice into the middle of the list, resizing and copying existing elements if needed.</li>
+      </ul>
+   </li>
+   <li><strong>Ben Noordhuis</strong> added partial support for basic stack traces on macosx, and fixed a memory leak in
+     <code>std.debug.openSelfDebugInfo</code>.
+      (See <a href="https://github.com/zig-lang/zig/issues/780">#780</a>)</li>
+   <li><strong>Ben Noordhuis</strong> made types inside functions named after the variable they're declared in.
+      (See <a href="https://github.com/zig-lang/zig/issues/783">#780</a>)</li>
+   <li><strong>Ben Noordhuis</strong> added implicit casting from <code>S</code> to <code>?&amp;const S</code>.
+      (See <a href="https://github.com/zig-lang/zig/issues/785">#785</a>)</li>
+   <li><strong>Marc Tiehuis</strong> added UTF-8 string view API to the standard library
+      (See <a href="https://github.com/zig-lang/zig/issues/784">#784</a>)</li>
+   <li><strong>Ben Noordhuis</strong> added implicit casting from <code>&amp;const</code> to <code>?&amp;const &amp;const</code>.
+      (See <a href="https://github.com/zig-lang/zig/issues/796">#796</a>)</li>
+   <li><strong>Ben Noordhuis</strong> fixed a compiler crash on a self-referencing function pointer field
+      (See <a href="https://github.com/zig-lang/zig/issues/797">#797</a>)</li>
+ </ul>
+
+   <h2>Thank you financial supporters!</h2>
+
+<p>
+Special thanks to those who <a href="https://www.patreon.com/andrewrk">donate monthly</a>. We're now at $215 of the $3,000 goal.
+</p>
+
+<ul>
+  <li>Lauren Chavis</li>
+  <li>Andrea Orru</li>
+  <li>Adrian Sinclair</li>
+  <li>David Joseph</li>
+  <li>jeff kelley</li>
+  <li>Hasen Judy</li>
+  <li>Brendon Scheinman</li>
+  <li>Wesley Kelley</li>
+  <li>Harry Eakins</li>
+  <li>Richard Ohnemus</li>
+  <li>Matthew </li>
+  <li>Martin Schwaighofer</li>
+  <li>Mirek Rusin</li>
+  <li>Jordan Torbiak</li>
+  <li>Pyry Kontio</li>
+  <li>Thomas Ballinger</li>
+  <li>Peter Ronnquist</li>
+  <li>Luke McCarthy</li>
+  <li>Robert Paul Herman</li>
+  <li>Audun Wilhelmsen</li>
+  <li>Marko Mikulicic</li>
+  <li>Jimmi Holst Christensen</li>
+  <li>Caius </li>
+  <li>Don Poor</li>
+  <li>Anthony J. Benik</li>
+  <li>David Hayden</li>
+  <li>Tyler Philbrick</li>
+  <li>Tanner Schultz</li>
+  <li>Eduard Nicodei</li>
+  <li>Christopher A. Butler</li>
+  <li>Colleen Silva-Hayden</li>
+  <li>Jeremy Larkin</li>
+  <li>Rasmus Rønn Nielsen</li>
+  <li>Brian Lewis</li>
+  <li>Tom Palmer</li>
+  <li>Josh McDonald</li>
+  <li>Chad Russell</li>
+  <li>Alexandra Gillis</li>
+  <li>david karapetyan</li>
+  <li>Zi He Goh</li>
+</ul>
