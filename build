@@ -162,6 +162,7 @@ var postList = [
 readPostContentAndGenerateRss();
 
 render("index.html", "home", {posts: postList});
+render("donate/index.html", "donate", {});
 postList.forEach(function(post) {
   render(path.join("post", post.filename), "post", {post: post});
 });
