@@ -46,7 +46,7 @@
   I have always wanted to write an emulator. I made a half-hearted attempt in college
   but it never made it to a demo-able state. I also didn't want to write Yet Another Emulator.
   It should at least bring something new to the table. When I discovered
-  <a href="http://llvm.org/">LLVM</a>, I felt like I finally had worthwhile idea for a project.
+  <a href="https://llvm.org/">LLVM</a>, I felt like I finally had worthwhile idea for a project.
 </p>
 <p>
   This article presents original research regarding the possibility of
@@ -85,8 +85,8 @@
 </ol>
 <h2 id="discovering-llvm">Discovering LLVM</h2>
 <p>
-  I became giddy with excitement when I discovered <a href="http://llvm.org/">LLVM</a>.
-  Generate code in <a href="http://llvm.org/docs/LangRef.html">LLVM IR format</a>,
+  I became giddy with excitement when I discovered <a href="https://llvm.org/">LLVM</a>.
+  Generate code in <a href="https://llvm.org/docs/LangRef.html">LLVM IR format</a>,
   and LLVM can optimize and generate native code for any of its supported backends.
   Here's an incomplete list:
 </p>
@@ -156,7 +156,7 @@ test.c:7:5: note: use option -std=c99 or -std=gnu99 to compile your code
 $
 </pre>
 <p>
-Right, so default gcc doesn't have the nice things that <a href="http://en.wikipedia.org/wiki/C99">C99</a> brings.
+Right, so default gcc doesn't have the nice things that <a href="https://en.wikipedia.org/wiki/C99">C99</a> brings.
 Let's try that again with <code>gcc -std=c99</code>:
 </p>
 <pre>
@@ -203,7 +203,7 @@ Once we fix that up and run the code again, we get the expected behavior.
 <p>
 There are many instances where cryptic gcc errors in your code are made clear by clang.
 In the words of my friend
-<a href="http://thejoshwolfe.blogspot.com/">Josh Wolfe</a>,
+<a href="https://wolfesoftware.com/">Josh Wolfe</a>,
 </p>
 <blockquote>
   <p>
@@ -230,7 +230,7 @@ What if we could translate NES assembly code into LLVM IR code? <strong>We could
 <ul>
   <li>
     CPU - 8-bit processor. Basically a
-    <a href="http://en.wikipedia.org/wiki/MOS_Technology_6502">MOS 6502</a>.
+    <a href="https://en.wikipedia.org/wiki/MOS_Technology_6502">MOS 6502</a>.
   </li>
   <li>Picture Processing Unit</li>
   <li>Audio Processing Unit</li>
@@ -504,7 +504,7 @@ From there we can process the AST and turn it into the 32KB binary payload.
 </p>
 <p>
 In Go land, this is straightforward thanks to <a href="https://github.com/blynn/nex">nex</a>,
-a lexer, and <a href="http://golang.org/cmd/yacc/">go tool yacc</a>, a parser that
+a lexer, and <a href="https://golang.org/cmd/yacc/">go tool yacc</a>, a parser that
 is bundled with Go.
 Here is the parser code that can build an AST for our "Hello, World" example:
 </p>
@@ -1481,13 +1481,13 @@ module.o.
 </p>
 <p>
 LLVM is written in C++, but it also exposes a C interface.
-This means we can integrate cleanly using <a href="http://golang.org/cmd/cgo/">cgo</a>.
+This means we can integrate cleanly using <a href="https://golang.org/cmd/cgo/">cgo</a>.
 In fact, <a href="http://awilkins.id.au/">Andrew Wilkins</a> maintains a convenient Go module called
 <a href="https://github.com/axw/gollvm">gollvm</a> which gives us seamless integration.
 </p>
 <p>
 At any time we can debug the LLVM module we are generating by calling <code>module.Dump()</code>
-which prints the <a href="http://llvm.org/docs/LangRef.html">LLVM IR code</a>
+which prints the <a href="https://llvm.org/docs/LangRef.html">LLVM IR code</a>
 for the module to stderr. Let's start by manually creating the
 IR code that we want to generate for Hello World, so we know what to work toward.
 We can get a head start by writing it in C and using <code>clang</code> to generate the IR
@@ -1556,7 +1556,7 @@ it's a good start. If that looks complicated, don't worry - we're going
 to do 3 things to make it less so:
 </p>
 <ol>
-  <li>Read up on the <a href="http://llvm.org/docs/LangRef.html">language reference</a>.</li>
+  <li>Read up on the <a href="https://llvm.org/docs/LangRef.html">language reference</a>.</li>
   <li>Delete the stuff that seems unnecessary and see if it still works.</li>
   <li>Modify the code to look like what we want to generate.</li>
 </ol>
@@ -1853,7 +1853,7 @@ Here is a full description of all the status bits:
     </td>
     <td>
       When a computation results in an invalid
-      <a href="http://en.wikipedia.org/wiki/Two's_complement">two's complement</a>
+      <a href="https://en.wikipedia.org/wiki/Two's_complement">two's complement</a>
       value, this bit is set.
       Otherwise, it is cleared.
       <code>BVC</code> and <code>BVS</code> use this to decide whether to branch.
@@ -2338,7 +2338,7 @@ bitcode:
   </tr>
   <tr>
     <td>
-      <a href="http://llvm.org/docs/Passes.html#constprop-simple-constant-propagation">Constant Propagation</a>
+      <a href="https://llvm.org/docs/Passes.html#constprop-simple-constant-propagation">Constant Propagation</a>
     </td>
     <td>
       Looks for instructions involving only constants and replaces them with a
@@ -2347,7 +2347,7 @@ bitcode:
   </tr>
   <tr>
     <td>
-      <a href="http://llvm.org/docs/Passes.html#instcombine-combine-redundant-instructions">Combine Redundant Instructions</a>
+      <a href="https://llvm.org/docs/Passes.html#instcombine-combine-redundant-instructions">Combine Redundant Instructions</a>
     </td>
     <td>
       Combines instructions to form fewer, simple instructions. For example if you add 1 twice, it will instead
@@ -2356,7 +2356,7 @@ bitcode:
   </tr>
   <tr>
     <td>
-      <a href="http://llvm.org/docs/Passes.html#mem2reg-promote-memory-to-register">Promote Memory to Register</a>
+      <a href="https://llvm.org/docs/Passes.html#mem2reg-promote-memory-to-register">Promote Memory to Register</a>
     </td>
     <td>
       This pass allows us to load every "register" variable (X, Y, A, etc) before performing
@@ -2367,7 +2367,7 @@ bitcode:
   </tr>
   <tr>
     <td>
-      <a href="http://llvm.org/docs/Passes.html#gvn-global-value-numbering">Global Value Numbering</a>
+      <a href="https://llvm.org/docs/Passes.html#gvn-global-value-numbering">Global Value Numbering</a>
     </td>
     <td>
       Eliminates partially and fully redundant instructions, and delete redundant load instructions.
@@ -2375,7 +2375,7 @@ bitcode:
   </tr>
   <tr>
     <td>
-      <a href="http://llvm.org/docs/Passes.html#simplifycfg-simplify-the-cfg">Control Flow Graph Simplification</a>
+      <a href="https://llvm.org/docs/Passes.html#simplifycfg-simplify-the-cfg">Control Flow Graph Simplification</a>
     </td>
     <td>
       Removes unnecessary code and merges basic blocks together when possible.
@@ -2421,7 +2421,7 @@ Here's what it looks like to add these optimization passes to our
 	// ...</code>
 </pre>
 <p>
-LLVM offers <a href="http://llvm.org/docs/Passes.html">many more available passes</a>,
+LLVM offers <a href="https://llvm.org/docs/Passes.html">many more available passes</a>,
 and it's up to the user to choose which ones, and in which order, to run.
 Let's see how the ones chosen in the table above perform on our "Hello World" code:
 </p>
@@ -2927,7 +2927,7 @@ Again, writing the code to pack the rom back together into an
 <p>
 Now we observe the ROM running in an emulator and see if it still works:
 </p>
-<img alt="" src="http://superjoe.s3.amazonaws.com/blog-files/jamulator/zelda-bent.png"/>
+<img alt="" src="https://superjoe.s3.amazonaws.com/blog-files/jamulator/zelda-bent.png"/>
 <p>
 Ha! It works but the sword is bent. That's actually pretty convenient - now
 when we want to make interrupts work, we know how to test them.
@@ -3330,7 +3330,7 @@ This question brings us to the next challenge.
 <h2 id="parallel-systems">Challenge: Parallel Systems Running Simultaneously</h2>
 <p>
 To find out how to get something rendering on the screen, I looked at
-<a href="http://github.com/scottferg/Fergulator">Fergulator</a> - an
+<a href="https://github.com/scottferg/Fergulator">Fergulator</a> - an
 already-working NES emulator written in Go.
 </p>
 <p>
@@ -3573,7 +3573,7 @@ $
 And so here we have it: an executable binary that depends on SDL and OpenGL, which
 supposedly will execute the Zelda Title Screen Simulator when run. Does it work?
 </p>
-<img src="http://superjoe.s3.amazonaws.com/blog-files/jamulator/zelda-exe.png" alt="">
+<img src="https://superjoe.s3.amazonaws.com/blog-files/jamulator/zelda-exe.png" alt="">
 <p>
 <small>
 Note: There is an obvious discrepancy between the screenshot and the output listed
@@ -3615,7 +3615,7 @@ There are 3 kinds of interrupts in NES programming:
   <dd>
   Stands for Non-Maskable Interrupt because there are no instructions
   to enable and disable this interrupt. It occurs when the
-  <a href="http://en.wikipedia.org/wiki/Vertical_blanking_interval">vertical blank</a>
+  <a href="https://en.wikipedia.org/wiki/Vertical_blanking_interval">vertical blank</a>
   begins.
   </dd>
 </dl>
@@ -3889,7 +3889,7 @@ func (c *Compilation) cycle(count int) {
 And so here we have it: an elegant but imperfect solution to the interrupt problem.
 Let's see if it fixes the bent sword:
 </p>
-<img src="http://superjoe.s3.amazonaws.com/blog-files/jamulator/zelda-straight.png">
+<img src="https://superjoe.s3.amazonaws.com/blog-files/jamulator/zelda-straight.png">
 <p>
 Looks like progress to me!
 At this point the project can recompile a small, simple title screen demo
@@ -4383,7 +4383,7 @@ The solution is to embed an interpreter runtime in the generated binary:
 <p>
 Here's a diagram to help clarify:
 </p>
-<img src="http://superjoe.s3.amazonaws.com/blog-files/jamulator/interpret-block.svg">
+<img src="https://superjoe.s3.amazonaws.com/blog-files/jamulator/interpret-block.svg">
 <p>
 This strategy ensures that NES games will run <em>correctly</em>,
 at the cost of efficiency.
@@ -4402,7 +4402,7 @@ Although, to be fair, I only had to add emulation support for 6 op codes to get
 Super Mario Brothers 1 working.
 </p>
 <h2 id="video">Video: Playing Super Mario Brothers 1 on Native Machine Code</h2>
-<iframe width="560" height="315" src="http://www.youtube.com/embed/Wn32zePbFpc" frameborder="0" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/Wn32zePbFpc" frameborder="0" allowfullscreen></iframe>
 <p>
 In this video I demonstrate my (poor) Super Mario 1 skills in a recompiled executable.
 I also demonstrate the movie playback feature that was instrumental in debugging.
@@ -4449,11 +4449,11 @@ nearly always get an answer immediately.
 As for my contributions back to the community, I did help scottferg
 <a href="https://github.com/scottferg/Fergulator/commit/feb9b16d785f281f04f7295452d065f856bfc727">fix a bug</a>
 in his emulator, which fixed support for
-<a href="http://en.wikipedia.org/wiki/Maniac_Mansion">Maniac Mansion</a>.
+<a href="https://en.wikipedia.org/wiki/Maniac_Mansion">Maniac Mansion</a>.
 </p>
 <p>
 I also filed an
-<a href="http://llvm.org/bugs/show_bug.cgi?id=15873">llvm feature request</a>
+<a href="https://llvm.org/bugs/show_bug.cgi?id=15873">llvm feature request</a>
 asking for the ability to generate
 comments in IR code. This would make it much, much easier to debug
 generated IR code.
@@ -4473,11 +4473,11 @@ features such as saving state or rewinding.
 </p>
 <p>
 A comparison could be made between a console game and an interpreted language
-such as <a href="http://en.wikipedia.org/wiki/JavaScript">JavaScript</a>.
+such as <a href="https://en.wikipedia.org/wiki/JavaScript">JavaScript</a>.
 There are amazingly fast JavaScript interpreters such as
 <a href="https://code.google.com/p/v8/">V8</a>, but they do not
 work by statically compiling the script. Instead they use
-<a href="http://en.wikipedia.org/wiki/Just-in-time_compilation">Just-In-Time compilation</a>, along with some advanced techniques, to achieve great speeds.
+<a href="https://en.wikipedia.org/wiki/Just-in-time_compilation">Just-In-Time compilation</a>, along with some advanced techniques, to achieve great speeds.
 These techniques could be applied to JIT console game compilation.
 </p>
 <p>
