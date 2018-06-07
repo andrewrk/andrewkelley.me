@@ -1,0 +1,124 @@
+<script>
+  Prism.languages['zig'] = Prism.languages.extend('clike', {
+    'keyword': /\b(fn|import|cImport|const|var|extern|volatile|export|pub|noalias|inline|struct|enum|break|return|continue|asm|defer|if|else|switch|while|for|null|undefined|true|false|comptime)\b/,
+    'property': /\b(bool|i8|u8|i16|u16|i32|u32|i64|u64|isize|usize|f32|f64|void|unreachable|type|error|c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong)\b/,
+  });
+</script>
+<h1>I Quit My Cushy Job at OkCupid to Live on Donations to Zig</h1>
+<p>
+I am fortunate to be one of those people who started tinkering with code
+in their teens, and then found themselves in the position where their hobby
+could not only pay rent, but afford a comfortable standard of living, even
+in New York City.
+</p>
+<p>
+For a little over a year now, I worked on the backend team at
+<a href="https://www.okcupid.com/">OkCupid</a>, maintaining a large C++
+codebase that has not been reworked since 2005 when
+<a href="https://twitter.com/maxtaco">Maxwell Krohn</a>
+published the original
+<a href="https://pdos.csail.mit.edu/papers/okws:krohn-ms/okws_krohn-ms.pdf">OKWS paper</a>
+on which OkCupid is still based.
+</p>
+<p>
+As satisfying as it is to delete dead code, rework abstractions to remove footguns,
+and migrate a monolithic codebase to
+<a href="https://en.wikipedia.org/wiki/Service-oriented_architecture">Service Oriented Architecture</a>,
+my coworkers were well aware that my real passion was spent on nights and weekends,
+where I poured all the energy I could muster into <a href="https://ziglang.org/">Zig</a> -
+if not from my incessant comparisons between snippets of C++ code and how it could be
+better expressed in Zig, then from the tea mug that my lovely girlfriend Alee got me
+as a celebratory gift for reaching
+<a href="https://ziglang.org/download/#release-0.1.1">release 0.1.0</a>:
+</p>
+<img src="https://andrewkelley.me/img/zig-mug.jpg" style="width: 300px">
+<h2>Zig is Picking Up Steam</h2>
+<p>
+Ever since I gave this
+<a href="https://www.recurse.com/events/localhost-andrew-kelley">Software Should be Perfect</a> talk, it seems that the Zig community has seen a steady influx of new members. 
+</p>
+<img src="https://andrewkelley.me/img/david-zig.jpg" style="width: 200px">
+<p>David keeps sending me selfies with this hat that he made.</p>
+<p>
+The Zig community grew in size so much, that some weekends I found myself
+with only enough time to merge pull requests and respond to issues, and no
+time leftover to make progress on big roadmap changes.
+</p>
+<p>
+I found this both exciting, and frustrating. Here I was working on legacy code
+40 hours per week, while multiple Zig issues needed my attention.
+</p>
+<p>
+And so I took the plunge. I gave up my senior backend software engineer salary,
+and will attempt to live on <a href="https://www.patreon.com/andrewrk">Patreon donations</a>.
+</p>
+<h2>Roadmap</h2>
+<p>Here are some of the bigger items that are coming up now that I have more time:</p>
+<ul>
+  <li><a href="https://github.com/ziglang/zig/issues/1023">remove more sigils from the language</a></li>
+  <li><a href="https://github.com/ziglang/zig/issues/208">add tuples and remove var args</a></li>
+  <li><a href="https://github.com/ziglang/zig/issues/89">self-hosted compiler</a></li>
+  <li><a href="https://github.com/ziglang/zig/issues/910">http server and http client based on async/await</a></li>
+  <li><a href="https://github.com/ziglang/zig/issues/943">decentralized package manager</a></li>
+  <li><a href="https://github.com/ziglang/zig/issues/21">generate html documentation</a></li>
+  <li><a href="https://github.com/ziglang/zig/issues/68">hot code swapping</a></li>
+</ul>
+<p>I can't wait to make significant progress on these items. That said, I will also
+dedicate time each day for bug fixes and writing documentation.
+Every weekday except Friday, this will be my wakeup process:
+</p>
+<ol>
+  <li>Make tea</li>
+  <li>Fix a bug</li>
+  <li>Write some documentation</li>
+  <li>Deal with all open pull requests, whether that is by merging, rejecting, requesting
+    changes, or solving the use case a different way.</li>
+  <li>Proceed with working on a big feature item.</li>
+</ol>
+<p>
+On Fridays, I will spend the day working on a project other than Zig, but one that
+is implemented in Zig. For example:
+</p>
+<ul>
+  <li>Rewrite <a href="https://github.com/andrewrk/groovebasin">Groove Basin</a> in Zig.</li>
+  <li>Work on my <a href="https://github.com/andrewrk/clashos">game that the raspberry pi boots directly into</a> (this explores Zig's ability to be used for embedded and Operating System development) </li>
+  <li>Start reworking my <a href="http://genesisdaw.org/">digital audio workstation</a> in Zig.</li>
+</ul>
+<p>
+I'm beyond excited to get Zig to a place where it can reasonably be used for
+high quality and practical software projects. My goal is to make Zig so useful
+and practical that people will find themselves using it without intending to.
+</p>
+<p>And so it comes down to this - will you fund my efforts?
+</p>
+
+<h2>Why Donate to Zig?</h2>
+<p>
+Consider the basic premise of a for-profit business:
+</p>
+<ul>
+  <li>Customers pay currency in exchange for goods or services.</li>
+</ul>
+<p>
+If all goes well, both parties benefit from the exchange. But for-profit
+businesses are motivated, at the end of the day, not by customer satisfaction,
+but by profit.
+</p>
+<p>
+It's fine, this is how the world works. But it's not how Zig works.
+</p>
+<p>
+Zig is created by the open source community, for the open source community.
+One of our main <a href="https://ziglang.org/documentation/master/#Zen">tenants</a>
+is</p>
+<blockquote>Together we serve end users.</blockquote>
+<p>
+The Zig project is a public service, entirely motivated by improving the technical
+landscape of open source tools. There is no board to please, no stock shareholders
+demanding higher quarterly earnings, no office politics or career progressions on
+the line. 100% of donations I receive go towards paying rent, buying food, and
+generally attempting to live a modest, but healthy life.
+</p>
+<p>
+<a href="https://www.patreon.com/andrewrk">Will you donate $1/month?</a>
+</p>
