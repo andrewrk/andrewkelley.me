@@ -101,10 +101,7 @@ built-in function which returns an integer type with the specified signness and 
 and it can be used to get access to uncommon integer types like this:
 </p>
 <pre>
-<code class="language-zig">const u1 = @intType(false, 1);
-const u2 = @intType(false, 2);
-const u7 = @intType(false, 7);
-const i13 = @intType(true, 13);</code>
+<code class="language-zig">const i13 = @intType(true, 13);</code>
 </pre>
 <p>
 These uncommon integer types work like normal integer types. Arithmetic, casting, and overflow
@@ -136,10 +133,6 @@ For illustration, here is the above code translated into Zig:
 </p>
 <pre>
 <code class="language-zig">const u1 = @intType(false, 1);
-const u2 = @intType(false, 2);
-const u4 = @intType(false, 4);
-const u5 = @intType(false, 5);
-const u7 = @intType(false, 7);
 const u12 = @intType(false, 12);
 
 const CoreGlobalRegs = packed struct {
@@ -227,10 +220,7 @@ Here we try to take the address of a bit-field, and clang doesn't like that idea
 Meanwhile, in Zig, this works just fine:
 </p>
 <pre>
-<code class="language-zig">const u2 = @intType(false, 2);
-const u3 = @intType(false, 3);
-
-const Foo = packed struct {
+<code class="language-zig">const Foo = packed struct {
     a: u3,
     b: u3,
     c: u2,
@@ -242,9 +232,9 @@ var foo = Foo {
     .c = 3,
 };
 
-fn f() -&gt; u3 {
+fn f() u3 {
     const ptr = &amp;foo.b;
-    return *ptr;
+    return ptr.*;
 }</code>
 </pre>
 <p>
@@ -258,19 +248,19 @@ try to pass such a pointer to a function expecting a normal, byte-aligned value:
     c: u2,
 };
 
-fn foo(bit_field: &amp;const BitField) -&gt; u3 {
+fn foo(bit_field: *const BitField) u3 {
     return bar(&amp;bit_field.b);
 }
 
-fn bar(x: &amp;const u3) -&gt; u3 {
-    return *x;
+fn bar(x: *const u3) u3 {
+    return x.*;
 }</code>
 </pre>
 <p>
 In this case the compiler catches the mistake:
 </p>
 <pre>
-<code>./test.zig:8:26: error: expected type '&amp;const u3', found '&amp;:3:6 const u3'
+<code>./test.zig:8:26: error: expected type '*const u3', found '*:3:6 const u3'
     return bar(&amp;bit_field.b);
                          ^</code>
 </pre>
