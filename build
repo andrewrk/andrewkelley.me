@@ -21,6 +21,12 @@ swig.init({
 
 var postList = [
   {
+    filename: "string-matching-comptime-perfect-hashing-zig.html",
+    content: null,
+    date: new Date("2018-09-15T16:06:33.275Z"),
+    title: "String Matching based on Compile Time Perfect Hashing in Zig",
+  },
+  {
     filename: "full-time-zig.html",
     content: null,
     date: new Date("2018-06-07T14:20:30.323Z"),

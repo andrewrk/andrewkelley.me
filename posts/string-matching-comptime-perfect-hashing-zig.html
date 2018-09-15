@@ -1,0 +1,404 @@
+<script>
+  Prism.languages['zig'] = Prism.languages.extend('clike', {
+    'keyword': /\b(test|fn|import|cImport|const|var|extern|volatile|export|pub|noalias|inline|struct|enum|break|return|continue|asm|defer|if|else|switch|while|for|null|undefined|true|false|comptime)\b/,
+    'property': /\b(bool|i8|u8|i16|u16|i32|u32|i64|u64|isize|usize|f32|f64|void|unreachable|type|error|c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong)\b/,
+  });
+  Prism.languages['llvm'] = Prism.languages.extend('clike', {
+    'keyword': /\b(private|constant|declare|define|c|noreturn|nounwind|alloca|br|store|load|getelementptr|and|icmp|eq|zext|call|unreachable|add|target|datalayout|triple|unnamed_addr|align|inbounds|uwtable|sext|ret|ne|phi|global|to|zeroinitializer|shl|or|ult|switch)\b/,
+    'number': null,
+    'comment': /;.*/,
+    'operator': /\w[\w\d_]*:/,
+    'regex': /[@%]\.?\w+/,
+    'property': /\b(i8|i1|i32|i64|i16|void|label)\*?\b/,
+    'punctuation': null,
+    'function': null,
+  });
+</script>
+<h1>String Matching based on Compile Time Perfect Hashing in Zig</h1>
+<p>Inspired by <a href="https://smilingthax.github.io/slides/cttrie/">cttrie - Compile time TRIE based string matching</a>,
+I decided to see what this solution would look like in Zig.
+</p>
+<p>
+Here's the API I came up with:
+</p>
+<pre><code class="language-zig">const ph = perfectHash([][]const u8{
+    "a",
+    "ab",
+    "abc",
+});
+switch (ph.hash(target)) {
+    ph.case("a") =&gt; std.debug.warn("handle the a case"),
+    ph.case("ab") =&gt; std.debug.warn("handle the ab case"),
+    ph.case("abc") =&gt; std.debug.warn("handle the abc case"),
+    else =&gt; unreachable,
+}</code></pre>
+<p>
+It notices at compile-time if you forget to declare one of the cases. For example, if I
+comment out the last item:
+</p>
+<pre><code class="language-zig">const ph = perfectHash([][]const u8{
+    "a",
+    "ab",
+    //"abc",
+});</code></pre>
+<p>When compiled this gives:</p>
+<pre>perfect-hashing.zig:147:13: error: case value 'abc' not declared
+            @compileError("case value '" ++ s ++ "' not declared");
+            ^
+perfect-hashing.zig:18:16: note: called from here
+        ph.case("abc") =&gt; std.debug.warn("handle the abc case\n"),
+               ^</pre>
+<p>
+It also has runtime safety if you pass in a string that was not prepared for:
+</p>
+<pre><code class="language-zig">const std = @import("std");
+const assert = std.debug.assert;
+
+test "perfect hashing" {
+    basedOnLength("zzz");
+}
+
+fn basedOnLength(target: []const u8) void {
+    const ph = perfectHash([][]const u8{
+        "a",
+        "ab",
+        "abc",
+    });
+    switch (ph.hash(target)) {
+        ph.case("a") =&gt; @panic("wrong one a"),
+        ph.case("ab") =&gt; {}, // test pass
+        ph.case("abc") =&gt; @panic("wrong one abc"),
+        else =&gt; unreachable,
+    }
+}</code></pre>
+<p>When run this gives:</p>
+<pre>Test 1/1 perfect hashing...attempt to perfect hash zzz which was not declared
+perfect-hashing.zig:156:36: 0x205a21 in ??? (test)
+                    std.debug.panic("attempt to perfect hash {} which was not declared", s);
+                                   ^
+perfect-hashing.zig:15:20: 0x2051bd in ??? (test)
+    switch (ph.hash(target)) {
+                   ^
+perfect-hashing.zig:5:18: 0x205050 in ??? (test)
+    basedOnLength("zzz");
+                 ^
+/home/andy/dev/zig/build/lib/zig/std/special/test_runner.zig:13:25: 0x2238ea in ??? (test)
+        if (test_fn.func()) |_| {
+                        ^
+/home/andy/dev/zig/build/lib/zig/std/special/bootstrap.zig:96:22: 0x22369b in ??? (test)
+            root.main() catch |err| {
+                     ^
+/home/andy/dev/zig/build/lib/zig/std/special/bootstrap.zig:70:20: 0x223615 in ??? (test)
+    return callMain();
+                   ^
+/home/andy/dev/zig/build/lib/zig/std/special/bootstrap.zig:64:39: 0x223478 in ??? (test)
+    std.os.posix.exit(callMainWithArgs(argc, argv, envp));
+                                      ^
+/home/andy/dev/zig/build/lib/zig/std/special/bootstrap.zig:37:5: 0x223330 in ??? (test)
+    @noInlineCall(posixCallMainAndExit);
+    ^
+
+Tests failed. Use the following command to reproduce the failure:
+/home/andy/dev/zig/build/zig-cache/test</pre>
+<p>
+So there's the API. How does it work?
+</p>
+<p>
+Here's the implementation of the <code>perfectHash</code> function:
+</p>
+<pre><code class="language-zig">fn perfectHash(comptime strs: []const []const u8) type {
+    const Op = union(enum) {
+        /// add the length of the string
+        Length,
+
+        /// add the byte at index % len
+        Index: usize,
+
+        /// right shift then xor with constant
+        XorShiftMultiply: u32,
+    };
+    const S = struct {
+        fn hash(comptime plan: []Op, s: []const u8) u32 {
+            var h: u32 = 0;
+            inline for (plan) |op| {
+                switch (op) {
+                    Op.Length =&gt; {
+                        h +%= @truncate(u32, s.len);
+                    },
+                    Op.Index =&gt; |index| {
+                        h +%= s[index % s.len];
+                    },
+                    Op.XorShiftMultiply =&gt; |x| {
+                        h ^= x &gt;&gt; 16;
+                    },
+                }
+            }
+            return h;
+        }
+
+        fn testPlan(comptime plan: []Op) bool {
+            var hit = [1]bool{false} ** strs.len;
+            for (strs) |s| {
+                const h = hash(plan, s);
+                const i = h % hit.len;
+                if (hit[i]) {
+                    // hit this index twice
+                    return false;
+                }
+                hit[i] = true;
+            }
+            return true;
+        }
+    };
+
+    var ops_buf: [10]Op = undefined;
+
+    const plan = have_a_plan: {
+        var seed: u32 = 0x45d9f3b;
+        var index_i: usize = 0;
+        const try_seed_count = 50;
+        const try_index_count = 50;
+
+        while (index_i &lt; try_index_count) : (index_i += 1) {
+            const bool_values = if (index_i == 0) []bool{true} else []bool{ false, true };
+            for (bool_values) |try_length| {
+                var seed_i: usize = 0;
+                while (seed_i &lt; try_seed_count) : (seed_i += 1) {
+                    comptime var rand_state = std.rand.Xoroshiro128.init(seed + seed_i);
+                    const rng = &amp;rand_state.random;
+
+                    var ops_index = 0;
+
+                    if (try_length) {
+                        ops_buf[ops_index] = Op.Length;
+                        ops_index += 1;
+
+                        if (S.testPlan(ops_buf[0..ops_index]))
+                            break :have_a_plan ops_buf[0..ops_index];
+
+                        ops_buf[ops_index] = Op{ .XorShiftMultiply = rng.scalar(u32) };
+                        ops_index += 1;
+
+                        if (S.testPlan(ops_buf[0..ops_index]))
+                            break :have_a_plan ops_buf[0..ops_index];
+                    }
+
+                    ops_buf[ops_index] = Op{ .XorShiftMultiply = rng.scalar(u32) };
+                    ops_index += 1;
+
+                    if (S.testPlan(ops_buf[0..ops_index]))
+                        break :have_a_plan ops_buf[0..ops_index];
+
+                    const before_bytes_it_index = ops_index;
+
+                    var byte_index = 0;
+                    while (byte_index &lt; index_i) : (byte_index += 1) {
+                        ops_index = before_bytes_it_index;
+
+                        ops_buf[ops_index] = Op{ .Index = rng.scalar(u32) % try_index_count };
+                        ops_index += 1;
+
+                        if (S.testPlan(ops_buf[0..ops_index]))
+                            break :have_a_plan ops_buf[0..ops_index];
+
+                        ops_buf[ops_index] = Op{ .XorShiftMultiply = rng.scalar(u32) };
+                        ops_index += 1;
+
+                        if (S.testPlan(ops_buf[0..ops_index]))
+                            break :have_a_plan ops_buf[0..ops_index];
+                    }
+                }
+            }
+        }
+
+        @compileError("unable to come up with perfect hash");
+    };
+
+    return struct {
+        fn case(comptime s: []const u8) usize {
+            inline for (strs) |str| {
+                if (std.mem.eql(u8, str, s))
+                    return hash(s);
+            }
+            @compileError("case value '" ++ s ++ "' not declared");
+        }
+        fn hash(s: []const u8) usize {
+            if (std.debug.runtime_safety) {
+                const ok = for (strs) |str| {
+                    if (std.mem.eql(u8, str, s))
+                        break true;
+                } else false;
+                if (!ok) {
+                    std.debug.panic("attempt to perfect hash {} which was not declared", s);
+                }
+            }
+            return S.hash(plan, s) % strs.len;
+        }
+    };
+}</code></pre>
+<p>
+Here's what this is doing:
+</p>
+<ul>
+  <li>Create the concept of a hashing operation. The operations that can happen are:
+    <ul>
+      <li><code>Length</code> - use wraparound addition to add the length of the string to the hash value.</li>
+      <li><code>Index</code> - use wraparound addition to add the byte from the string at the specified index.
+      Use modulus arithmetic in case the index is out of bounds.</li>
+      <li><code>XorShiftMultiply</code> - perform a right shift by 16 bits of the hash value and then xor with
+        the specified value (which will come from a random number generator executed at compile time).</li>
+    </ul>
+  </li>
+  <li>Next, we're going to try a series of "plans" which is a sequence of operations strung together.
+    We have this function <code>testPlan</code> which performs the hash operations on all the strings
+    and sees if there are any collisions. If we ever find a plan that results in no collisions, we have
+    found a perfect hashing strategy.
+  </li>
+  <li>
+    First we test a plan that is simply the <code>Length</code> operation. If this works, then all the hash
+    function has to do is take the length of the string mod the number of strings. Easy. You may notice
+    this is true for the above example. Don't worry, I have a more complicated example below.
+  </li>
+  <li>
+    Next we iterate over the count of how many different bytes we are willing to look at in the hash function.
+    We start with 0. If we can xor the length with a random number and it fixes the collisions, then we're done.
+    We try 50 seeds before giving up and deciding to inspect a random byte from the string in the hash function.
+    If the addition of inspecting a random byte from the string to hash doesn't solve the problem,
+    we try 50 seeds in order to choose different random byte indexes. If that still doesn't work,
+    we look at 2 random bytes, again trying 50 different seeds with these 2 bytes.
+    And so on until every combination of 50 seeds x 50 bytes inspected, at which point we give up and
+    emit a compile error "unable to come up with perfect hash".
+  </li>
+</ul>
+<p>We can use <code>@compileLog</code> to see the plan that the function came up with:</p>
+<pre><code class="language-zig">for (plan) |op| {
+    @compileLog(@TagType(Op)(op));
+}</code></pre>
+<p>This outputs:</p>
+<pre>
+| @TagType(Op).Length
+</pre>
+<p>So this means that the hash function only has to look at the length for this example.</p>
+<p>The nice thing about this is that the plan is all known at compile time. Indeed, you can see
+that the <code>hash</code> function uses <a href="https://ziglang.org/documentation/master/#inline-for">inline for</a>
+to iterate over the operations in the plan.
+This means that LLVM is able to fully optimize the hash function.
+</p>
+<p>Here's what it gets compiled to in release mode for x86_64:</p>
+<pre>
+0000000000000000 &lt;basedOnLength&gt;:
+   0:	89 f0                	mov    %esi,%eax
+   2:	b9 ab aa aa aa       	mov    $0xaaaaaaab,%ecx
+   7:	48 0f af c8          	imul   %rax,%rcx
+   b:	48 c1 e9 21          	shr    $0x21,%rcx
+   f:	8d 04 49             	lea    (%rcx,%rcx,2),%eax
+  12:	29 c6                	sub    %eax,%esi
+  14:	48 89 f0             	mov    %rsi,%rax
+  17:	c3                   	retq   
+  18:	0f 1f 84 00 00 00 00 	nopl   0x0(%rax,%rax,1)
+  1f:	00 
+</pre>
+<p>You can see there is not even a jump instruction in there. And it will output numbers in sequential order from 0,
+so that the switch statement can be a jump table. Here is the LLVM IR of the switch:</p>
+<pre><code class="language-llvm"> %2 = call fastcc i64 @"perfectHash((struct []const []const u8 constant))_hash"(%"[]u8"* %0), !dbg !736
+  store i64 %2, i64* %1, align 8, !dbg !736
+  %3 = load i64, i64* %1, align 8, !dbg !740
+  switch i64 %3, label %SwitchElse [
+    i64 1, label %SwitchProng
+    i64 2, label %SwitchProng1
+    i64 0, label %SwitchProng2
+  ], !dbg !740</code></pre>
+<p>
+How about a harder example?
+</p>
+<pre><code class="language-zig">@setEvalBranchQuota(100000);
+const ph = perfectHash([][]const u8{
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+});
+switch (ph.hash(target)) {
+    ph.case("one") =&gt; std.debug.warn("handle the one case"),
+    ph.case("two") =&gt; std.debug.warn("handle the two case"),
+    ph.case("three") =&gt; std.debug.warn("handle the three case"),
+    ph.case("four") =&gt; std.debug.warn("handle the four case"),
+    ph.case("five") =&gt; std.debug.warn("handle the five case"),
+    else =&gt; unreachable,
+}</code></pre>
+<p>
+This example is interesting because there are 2 pairs of length collisions (one/two, four/five) and 2 pairs of byte collisions (two/three, four/five).
+</p>
+<p>
+Here we have to use <a href="https://ziglang.org/documentation/master/#setEvalBranchQuota">@setEvalBranchQuota</a>
+because it takes a bit of computation to come up with the answer.
+</p>
+<p>
+Again, the hash function comes up with a mapping to 0, 1, 2, 3, 4 (but not necessarily in the same order as specified):
+</p>
+<pre><code class="language-llvm"> %2 = call fastcc i64 @"perfectHash((struct []const []const u8 constant))_hash.11"(%"[]u8"* %0), !dbg !749
+  store i64 %2, i64* %1, align 8, !dbg !749
+  %3 = load i64, i64* %1, align 8, !dbg !753
+  switch i64 %3, label %SwitchElse [
+    i64 4, label %SwitchProng
+    i64 2, label %SwitchProng1
+    i64 3, label %SwitchProng2
+    i64 0, label %SwitchProng3
+    i64 1, label %SwitchProng4
+  ], !dbg !753</code></pre>
+<p>
+And the optimized assembly:
+</p>
+<pre>0000000000000020 &lt;basedOnOtherStuff&gt;:
+  20:	48 83 fe 22          	cmp    $0x22,%rsi
+  24:	77 0b                	ja     31 &lt;basedOnOtherStuff+0x11&gt;
+  26:	b8 22 00 00 00       	mov    $0x22,%eax
+  2b:	31 d2                	xor    %edx,%edx
+  2d:	f7 f6                	div    %esi
+  2f:	eb 05                	jmp    36 &lt;basedOnOtherStuff+0x16&gt;
+  31:	ba 22 00 00 00       	mov    $0x22,%edx
+  36:	0f b6 04 17          	movzbl (%rdi,%rdx,1),%eax
+  3a:	05 ef 3d 00 00       	add    $0x3def,%eax
+  3f:	b9 cd cc cc cc       	mov    $0xcccccccd,%ecx
+  44:	48 0f af c8          	imul   %rax,%rcx
+  48:	48 c1 e9 22          	shr    $0x22,%rcx
+  4c:	8d 0c 89             	lea    (%rcx,%rcx,4),%ecx
+  4f:	29 c8                	sub    %ecx,%eax
+  51:	c3                   	retq   </pre>
+<p>
+We have a couple of jumps here, but no loop. This code looks at only 1 byte from
+the target string to determine the corresponding case index.
+We can see that more clearly with the <code>@compileLog</code> snippet from earlier:
+</p>
+<pre>| @TagType(Op).XorShiftMultiply
+| @TagType(Op).Index</pre>
+<p>
+So it initializes the hash with a constant value of predetermined random bits, then adds
+the byte from a randomly chosen index of the string. Using <code>@compileLog(plan[1].Index)</code>
+I determined that it is choosing the value 34, which means that:
+</p>
+<ul>
+  <li>For <code>one</code>, 34 % 3 == 1, it looks at the 'n'</li>
+  <li>For <code>two</code>, 34 % 3 == 1, it looks at the 'w'</li>
+  <li>For <code>three</code>, 34 % 5 == 4, it looks at the 'e'</li>
+  <li>For <code>four</code>, 34 % 4 == 2, it looks at the 'u'</li>
+  <li>For <code>five</code>, 34 % 4 == 2, it looks at the 'i'</li>
+</ul>
+<p>
+So the perfect hashing exploited that these bytes are all different, and when combined with
+the random constant that it found, the final modulus spreads out the value across the full
+range of 0, 1, 2, 3, 4.
+</p>
+<h3>Can we do better?</h3>
+<p>
+There are lots of ways this can be improved - this is just a proof of concept.
+For example, we could start by looking for a perfect hash in the subset of bytes that are
+within the smallest string length. For example, if we used index 1 in the above example,
+we could avoid the jumps and remainder division instructions in the hash function.
+</p>
+<h3>Conclusion</h3>
+<p>
+If you like this, you should check out <a href="https://ziglang.org/">Zig</a>.
+Consider <a href="https://www.patreon.com/andrewrk">supporting my work on Patreon</a>.
+</p>
