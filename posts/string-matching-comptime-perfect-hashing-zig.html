@@ -397,6 +397,13 @@ For example, we could start by looking for a perfect hash in the subset of bytes
 within the smallest string length. For example, if we used index 1 in the above example,
 we could avoid the jumps and remainder division instructions in the hash function.
 </p>
+<p>
+Another way this can be improved, to reduce compile times, is to have
+the <code>perfectHash</code> function accept the RNG seed as a parameter.
+If the seed worked first try, great. Otherwise the function would find the seed
+that does work, and emit a compile error instructing the programmer to switch
+the seed argument to the good one, saving time in future compilations.
+</p>
 <h3>Conclusion</h3>
 <p>
 If you like this, you should check out <a href="https://ziglang.org/">Zig</a>.
