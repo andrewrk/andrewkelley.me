@@ -1,6 +1,6 @@
 <script>
   Prism.languages['zig'] = Prism.languages.extend('clike', {
-    'keyword': /\b(test|fn|import|cImport|const|var|extern|volatile|export|pub|noalias|inline|struct|enum|break|return|continue|asm|defer|if|else|switch|while|for|null|undefined|true|false|comptime|setCold|ptrToInt|returnAddress)\b/,
+    'keyword': /\b(test|fn|import|cImport|const|var|extern|volatile|export|pub|noalias|inline|struct|enum|break|return|continue|asm|defer|if|else|switch|try|catch|while|for|null|undefined|true|false|comptime|setCold|ptrToInt|returnAddress)\b/,
     'property': /\b(bool|i8|u8|i16|u16|i32|u32|i64|u64|isize|usize|f32|f64|void|unreachable|type|error|c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong|noreturn)\b/,
   });
 </script>
@@ -154,6 +154,8 @@ At this point it was a simple matter of writing the glue code between my kernel 
 Zig Standard Library's stack trace facilities. In Zig, you don't have to intentionally support
 freestanding mode. Code which has no dependencies on a particular operating system will work
 in freestanding mode thanks to Zig's <em>lazy top level declaration analysis</em>.
+Because the standard library stack trace code does not call any OS API, it therefore
+supports freestanding mode.
 </p>
 <p>
 The Zig std lib API for opening debug information from an ELF file looks like this:
@@ -288,7 +290,7 @@ fn getSelfDebugInfo() !*std.debug.DwarfInfo {
 <p>
 You can see that the Zig common practice of accepting an allocator as an argument when
 allocation is needed comes in extremely handy for kernel development. We simply statically
-allocate a 200 KiB buffer and pass that along as the debug info allocator. If this ever
+allocate a 100 KiB buffer and pass that along as the debug info allocator. If this ever
 becomes too small, it can be adjusted.
 </p>
 <p>
