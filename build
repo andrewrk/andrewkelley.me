@@ -21,6 +21,12 @@ swig.init({
 
 var postList = [
   {
+    filename: "zig-stack-traces-kernel-panic-bare-bones-os.html",
+    content: null,
+    date: new Date("2018-12-04T18:02:47.913Z"),
+    title: "Using Zig to Provide Stack Traces on Kernel Panic for a Bare Bones Operating System",
+  },
+  {
     filename: "string-matching-comptime-perfect-hashing-zig.html",
     content: null,
     date: new Date("2018-09-15T16:06:33.275Z"),
