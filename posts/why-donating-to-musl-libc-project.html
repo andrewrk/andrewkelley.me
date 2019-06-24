@@ -1,0 +1,165 @@
+<h1>Why I'm donating $150/month (10% of my income) to the musl libc project</h1>
+<p>
+One year ago, <a href="/post/full-time-zig.html">I quit my day job to work on Zig full time</a>.
+Since then, the project has seen a steady growth in funding. Thanks to the people donating,
+Zig is on track to become fully sustainable before my savings run out.
+</p>
+<p>
+This support has allowed me to focus on steady improvements to the language and tooling. In the last
+year, Zig has released two versions:
+</p>
+<ul>
+  <li>0.3.0 (<a href="https://ziglang.org/download/0.3.0/release-notes.html">release notes</a>)</li>
+  <li>0.4.0 (<a href="https://ziglang.org/download/0.4.0/release-notes.html">release notes</a>)</li>
+</ul>
+<p>
+These release notes serve as my accountability to people who donate, and if you have a look at them, I hope you can agree with me that they speak for themselves.
+</p>
+<h2>The V language drama</h2>
+<p>
+I know that open-source project funding has been on people's minds lately, as we've watched the Internet's reaction to the
+bizarre open-sourcing of the V language unfold. As to how this relates to musl libc, stick with me - let me give you the talking
+points of this situation:
+</p>
+<ol>
+  <li>
+    The V language website was published several months ago, claiming that it could already do incredible things, such as automatically
+    translate C++ code to V code, and compile 1.2 million lines of code per second per CPU core by directly outputting x64 machine code.
+    These features already work today, it said, and they will be released soon. Please donate. Meanwhile, the project was closed-source.
+    Binaries and release notes were behind a paywall.
+  </li>
+  <li>
+    Over the next few months, people saw these amazing things it was claimed that V could do, and started donating money.
+    It even looked like the language was already available, with download links including file sizes and file names, but if you
+    clicked the download link, it did an alert() pop-up box saying "June 20". The project climbed up to $927/month in donations.
+  </li>
+  <li>
+    On 2019-06-20, the V author released a macOS binary of the V language, and it immediately became apparent that the many fantastic
+    claims on the V website were unsubstantiated. People were quick to point this out,
+    <a href="https://news.ycombinator.com/item?id=20230351">including myself</a>.
+  </li>
+  <li>
+    In response to the backlash, the V author redacted the macOS binary, and said that he would do a full source release in 2 days.
+  </li>
+  <li>
+    On 2019-06-22, he updated the V language website with "WIP" labels to point out which features of the project are not available, and
+    within an hour after that, published the V project source code. At this point, I made the <a href="https://github.com/vlang/v/issues/292#issuecomment-504689104">following statement</a>:
+
+    <blockquote>
+      <p>Now that the website has the "WIP" label to communicate which features are not available, and the source is released, I no longer consider this project to be fraudulent. The information is available to everyone, and people who donate on Patreon are making an informed choice.</p>
+      <p>I'm genuinely glad it turned out this way. Good luck on your endeavor, and welcome to the programming languages club.</p>
+    </blockquote>
+  </li>
+  <li>
+    At this point, the Internet discovered the source release. <a href="http://web.archive.org/web/20190623042334/https://github.com/vlang/v/issues/319">Shitposters, trolls, and genuine people all started paying
+      attention to the project at once</a>. Most people were unaware that the V website had been modified to retract the
+    false claims, which is quite understandable given that they had been there just yesterday. Now that it
+    was crystal clear that the V project had been intentionally misleading, the backlash intensified. In 2 days, V lost $100/month in
+    donations.
+  </li>
+  <li>
+    Finally, there was a backlash on the backlash. To some people, $927/month was "table scraps". From this perspective,
+    people were piling on a hate-train over a paltry sum of cash. Maybe other open-source projects should take a hint
+    from V and do a little bit more marketing. Donations to open-source projects are not a
+    <a href="https://en.wikipedia.org/wiki/Zero-sum_game">zero sum game</a>.
+  </li>
+</ol>
+<p>
+One thing that is crystal clear is that the V author succeeded in creating hype. He got people excited about ambitious features - so
+excited that they were willing to donate some cash.
+This <a href="https://lobste.rs/s/rh1pbo/v_source_code_released#c_jyakpy">made me think</a> of another open source project in the opposite category.
+</p>
+<h2>musl libc: a project with no hype but huge impact</h2>
+<p>
+<a href="https://www.musl-libc.org/">musl libc</a> is an alternative to GNU libc for Linux, created by
+<a href="http://ewontfix.com/">Rich Felker</a>, and with a healthy community of high-quality contributors.
+It's been around for years, yet making less than V in donations.
+</p>
+<p>
+The Zig project owes a lot to musl, for many reasons:
+</p>
+
+<h3>Mentorship</h3>
+<p>Especially in the early stages of the Zig project, but still to this day, I asked question after question in the <code>#musl</code>
+IRC channel, and the musl community patiently and <em>expertly</em> indulged them. Sometimes my questions were not even musl-related,
+but just more about how the Linux kernel works.
+</p>
+<p>
+I didn't start off as an expert systems programmer when I started Zig, but
+the musl community has mentored me over the years.</p>
+
+<h3>Zig bundles musl</h3>
+<p>
+Zig ships with musl source code. This allows Zig projects to cross compile for Linux. For example, on Windows, you can:
+</p>
+<pre><code>&gt; zig.exe build-exe --c-source hello.c -target x86_64-linux-musl</code></pre>
+<p>
+Copy the resulting ELF binary to a Linux machine and it will run. (Or run that in the Windows Subsystem for Linux).
+</p>
+<p>
+This works because Zig lazily builds musl from source on demand, for the selected target. It is in no small part thanks to musl's
+simplicity and well-designed nature that this is possible.
+</p>
+<p>
+It's also useful to create static builds on Linux where the native libc is glibc.
+</p>
+
+<h3>Much of the Zig standard library is ported from musl</h3>
+<p>
+musl is such a high quality codebase, that most of the Zig standard library's interface to Linux is a direct port of musl code.
+</p>
+<p>
+This has prevented countless bugs and made things "just work" in general. Without this head start, the Zig project would have
+had to spend more time on Linux system interface and less on everything else.
+</p>
+<p>
+For example, thanks to <a href="https://tiehu.is/">Marc Tiehuis</a> contributions, the Zig standard library has
+all the math functions you would expect to find in libm, and they are available <a href="https://ziglang.org/documentation/master/#Introducing-the-Compile-Time-Concept">at compile-time</a> as well as runtime.
+</p>
+
+<h3>Float literal parsing adapted and ported from musl</h3>
+<p>
+Zig has 128-bit floating point literals, so that compile-time computations can be done in a higher level of precision,
+before being casted to the floating point type of choice.
+</p>
+<p>
+This is tricky to implement in the C++ non-self-hosted compiler, however, because libc does not have a 128-bit <code>strtod</code>
+function. So I took musl's <code>strtold</code> function, which works with the type <code>long double</code>, and then
+<a href="https://github.com/ziglang/zig/commit/4615ed5ea003516c8235728ac3f5f0ee2ccea8a7">ported the code into Zig</a>,
+making all the #ifdefs assume that <code>long double</code> is 128-bits (which is only true on some architectures), and replacing all the
+math with <a href="http://www.jhauser.us/arithmetic/SoftFloat.html">SoftFloat</a> so that it would work on any architecture, no matter
+what <code>long double</code> maps to.
+</p>
+
+<h3>Alpine Linux is based on musl</h3>
+<p>
+Many people are aware of <a href="https://www.alpinelinux.org/">Alpine Linux</a> because it has become a popular Linux distribution
+to use with <a href="https://www.docker.com/">Docker</a>, mainly due to its simplicity and small binary size. This is in large part
+thanks to the fact that the system uses musl as its libc rather than glibc.
+</p>
+<p>
+The Zig project uses Alpine Linux to create the static Linux builds on <a href="https://ziglang.org/download/">ziglang.org/download</a>.
+</p>
+<hr>
+<p>
+And so I have decided to donate $150/month to the musl project, even though that represents 10% of my income.
+I'm putting my money where my mouth is. But there's more - please read on...
+</p>
+<h2>This is a marketing stunt</h2>
+<p>Now if I'm being honest about my motivations for this blog post, it's that I want to prove that
+<strong>open source funding is not a zero-sum game</strong>. If there's anything we've learned from the V language Internet drama that has unfolded over the past few days, it's that open source projects have to do marketing if they want to get financial support.</p>
+<p>
+But I want to set a better example of what that might look like. I don't think you have to trick people.
+This blog post is a marketing stunt intended to show that you can do things to get attention and funding, without being dishonest.
+</p>
+<p>
+<strong>Will you help me prove my point?</strong>
+</p>
+<p>If enough people start <a href="https://www.patreon.com/andrewrk">pledging donations to Zig</a> when reading this,
+and the $150/month is recovered, then this little stunt will have been a proof-of-concept of one open source project
+running a fund-raiser for another one. (To be clear my donations to musl are not conditional; regardless of the outcome
+I will continue to donate.)
+</p>
+<p>
+Worth a shot, right?
+</p>

@@ -21,6 +21,12 @@ swig.init({
 
 var postList = [
   {
+    filename: "why-donating-to-musl-libc-project.html",
+    content: null,
+    date: new Date("2019-06-24T20:15:06.864Z"),
+    title: "Why I'm donating $150/month (10% of my income) to the musl libc project",
+  },
+  {
     filename: "zig-stack-traces-kernel-panic-bare-bones-os.html",
     content: null,
     date: new Date("2018-12-04T18:02:47.913Z"),
