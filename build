@@ -21,6 +21,12 @@ swig.init({
 
 var postList = [
   {
+    filename: "zig-cc-powerful-drop-in-replacement-gcc-clang.html",
+    content: null,
+    date: new Date("2020-03-24T14:39:47.141Z"),
+    title: "`zig cc`: a Powerful Drop-In Replacement for GCC/Clang",
+  },
+  {
     filename: "why-donating-to-musl-libc-project.html",
     content: null,
     date: new Date("2019-06-24T20:15:06.864Z"),
