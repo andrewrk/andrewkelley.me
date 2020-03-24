@@ -423,10 +423,45 @@ JIT: ON fold cse dce fwd dse narrow loop abc sink fuse
 <p>
 Amazing. QEMU never fails to impress me.
 </p>
+<p>
+Before we move on, I want to show one more thing. You can see above, in order to run the
+foreign-architecture binary, I had to pass
+<code>-L ~/Downloads/glibc/multi-2.31/install/glibcs/aarch64-linux-gnu</code>. This is
+due to the binary being dynamically linked. You can confirm this with the output from
+<code>file</code> above where it says: <code>dynamically linked, interpreter /lib/ld-linux-aarch64.so.1</code>
+</p>
+<p>
+Often, when cross-compiling, it is useful to make a <em>static</em> binary.
+In the case of Linux, for example, this will make the resulting binary able to run on
+any Linux distribution, rather than only ones with a hard-coded glibc dynamic linker path
+of <code>/lib/ld-linux-aarch64.so.1</code>.
+</p>
+<p>
+We can accomplish this by targeting musl rather than glibc:
+</p>
+<pre>
+[~/Downloads/LuaJIT]$ git clean -qxfd
+[~/Downloads/LuaJIT]$ export CC="zig cc -target aarch64-linux-musl"
+[~/Downloads/LuaJIT]$ make CC="$CC" CXX="$CXX" HOST_CC="$HOST_CC" TARGET_STRIP="echo"
+==== Building LuaJIT 2.1.0-beta3 ====
+(same output)
+==== Successfully built LuaJIT 2.1.0-beta3 ====
+[~/Downloads/LuaJIT]$ file src/luajit
+src/luajit: ELF 64-bit LSB executable, ARM aarch64, version 1 (SYSV), statically linked, not stripped
+[~/Downloads/LuaJIT]$ qemu-aarch64 ./src/luajit
+LuaJIT 2.1.0-beta3 -- Copyright (C) 2005-2020 Mike Pall. http://luajit.org/
+JIT: ON fold cse dce fwd dse narrow loop abc sink fuse
+&gt; print(11 + 22)
+33
+</pre>
+<p>
+Here you can see the <code>file</code> command reported <em>statically linked</em>,
+and in the qemu command, the <code>-L</code> parameter was not needed.
+</p>
 
 <h2>Use Cases of `zig cc`</h2>
 <p>
-Alright, so I've given you a taste of what <code>zig cc</code> can do, but now I'll simply
+Alright, so I've given you a taste of what <code>zig cc</code> can do, but now I will
 list explicitly what I consider to be the use cases:
 </p>
 <h3>Experimentation</h3>
