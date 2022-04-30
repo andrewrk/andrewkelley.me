@@ -3,7 +3,7 @@ const fs = std.fs;
 const Allocator = std.mem.Allocator;
 const Rss = @This();
 
-arena: *Allocator,
+arena: Allocator,
 title: []const u8,
 description: []const u8,
 feed_url: []const u8,
@@ -19,9 +19,14 @@ pub const Item = struct {
 };
 
 pub fn add(rss: *Rss, item: Item) !void {
+    _ = rss;
+    _ = item;
     @panic("TODO implement Rss.add()");
 }
 
 pub fn render(rss: *Rss, dir: fs.Dir, sub_path: []const u8) !void {
+    _ = rss;
+    _ = dir;
+    _ = sub_path;
     @panic("TODO implement Rss.render()");
 }

@@ -159,7 +159,7 @@ var post_list = [_]Post{
 pub fn main() anyerror!void {
     var arena_instance = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena_instance.deinit();
-    const arena = &arena_instance.allocator;
+    const arena = arena_instance.allocator();
 
     var build_dir = try fs.cwd().makeOpenPath("www", .{});
     defer build_dir.close();
@@ -170,23 +170,30 @@ pub fn main() anyerror!void {
     var posts_dir = try fs.cwd().openDir("posts", .{});
     defer posts_dir.close();
 
-    var swig = Swig{ .root = "views" };
+    var views_dir = try fs.cwd().openDir("views", .{});
+    defer views_dir.close();
+
+    var swig = Swig{
+        .gpa = arena,
+        .views_dir = views_dir,
+    };
 
     try readPostContentAndGenerateRss(arena, &swig, build_dir, posts_dir);
 
     try swig.render(build_dir, "index.html", "home.html", .{ .posts = post_list });
-    try swig.render(build_dir, "donate/index.html", "donate.html", .{});
-    for (post_list) |post| {
-        try swig.render(build_post_dir, post.filename, "post.html", .{ .post = post });
-    }
+    //try swig.render(build_dir, "donate/index.html", "donate.html", .{});
+    //for (post_list) |post| {
+    //    try swig.render(build_post_dir, post.filename, "post.html", .{ .post = post });
+    //}
 }
 
 fn readPostContentAndGenerateRss(
-    arena: *Allocator,
+    arena: Allocator,
     swig: *Swig,
     build_dir: fs.Dir,
     posts_dir: fs.Dir,
 ) !void {
+    _ = swig;
     // cache the file content for each post in memory
     // also create a list of posts ordered by date
     // also create the RSS feed
@@ -194,23 +201,25 @@ fn readPostContentAndGenerateRss(
         .arena = arena,
         .title = "Andrew Kelley",
         .description = "My personal website - thoughts, project demos, research.",
-        .feed_url = "http://andrewkelley.me/rss.xml",
-        .site_url = "http://andrewkelley.me/",
+        .feed_url = "https://andrewkelley.me/rss.xml",
+        .site_url = "https://andrewkelley.me/",
         .image_url = "https://s3.amazonaws.com/superjoe/blog-files/profile-48x58.jpg",
         .author = "Andrew Kelley",
     };
     for (post_list) |*post, i| {
         post.content = try posts_dir.readFileAlloc(arena, post.filename, 10 * 1024 * 1024);
         if (i < 25) {
-            try feed.add(.{
-                .title = post.title,
-                .description = post.content,
-                .url = try fmt.allocPrint(arena, "http://andrewkelley.me/post/{s}", .{
-                    post.filename,
-                }),
-                .date = post.date,
-            });
+            _ = feed;
+            //try feed.add(.{
+            //    .title = post.title,
+            //    .description = post.content,
+            //    .url = try fmt.allocPrint(arena, "https://andrewkelley.me/post/{s}", .{
+            //        post.filename,
+            //    }),
+            //    .date = post.date,
+            //});
         }
     }
-    try feed.render(build_dir, "rss.xml");
+    _ = build_dir;
+    //try feed.render(build_dir, "rss.xml");
 }

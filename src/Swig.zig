@@ -15,12 +15,77 @@ pub fn render(
     view_filename: []const u8,
     args: anytype,
 ) !void {
-    const ast = try swig.compile(view_filename);
-    _ = ast;
-    _ = out_dir;
-    _ = out_path;
-    _ = args;
-    @panic("TODO implement render()");
+    var ast = try swig.compile(view_filename);
+    defer ast.deinit(swig.gpa);
+
+    const root_nodes = try ast.getRootNodesOrPrintError();
+
+    var out_file = try out_dir.createFile(out_path, .{});
+    defer out_file.close();
+
+    var bw = std.io.bufferedWriter(out_file.writer());
+    const w = bw.writer();
+
+    switch (root_nodes[0]) {
+        .extends => |filename| {
+            var base_ast = try swig.compile(filename);
+            defer base_ast.deinit(swig.gpa);
+
+            const base_nodes = try base_ast.getRootNodesOrPrintError();
+
+            var block_table = std.StringHashMap(*Ast.Block).init(swig.gpa);
+            defer block_table.deinit();
+
+            for (base_nodes) |*node| switch (node.*) {
+                .block => |*block| {
+                    try block_table.put(block.name, block);
+                },
+                else => continue,
+            };
+
+            for (root_nodes[1..]) |node| switch (node) {
+                .block => |overriding_block| {
+                    const base_block = block_table.get(overriding_block.name) orelse {
+                        std.debug.print("base view '{s}' has no block named '{s}'\n", .{
+                            filename, overriding_block.name,
+                        });
+                        return error.RenderFail;
+                    };
+                    base_block.inside = overriding_block.inside;
+                },
+                else => continue,
+            };
+
+            // Iterate over the base view again, this time writing to the output.
+            try renderBody(w, base_nodes, args);
+        },
+        else => {
+            std.debug.print("expected an 'extends' node", .{});
+            return error.RenderFail;
+        },
+    }
+
+    try bw.flush();
+}
+
+fn renderBody(w: anytype, body: []Ast.Node, args: anytype) @TypeOf(w).Error!void {
+    for (body) |node| switch (node) {
+        .extends => unreachable,
+        .block => |block| {
+            try renderBody(w, block.inside, args);
+        },
+        .content => |text| {
+            try w.writeAll(text);
+        },
+        .for_loop => |for_loop| {
+            _ = args;
+            _ = for_loop;
+            try w.writeAll("TODO for loop");
+        },
+        .auto_escape => {
+            @panic("TODO auto escape");
+        },
+    };
 }
 
 const Ast = struct {
@@ -36,8 +101,14 @@ const Ast = struct {
         extends: []const u8,
         content: []const u8,
         block: Block,
-        for_loop: []Node,
+        for_loop: For,
         auto_escape: AutoEscape,
+    };
+
+    const For = struct {
+        capture_name: []const u8,
+        collection_name: []const u8,
+        body: []Node,
     };
 
     const Block = struct {
@@ -53,6 +124,16 @@ const Ast = struct {
     fn deinit(ast: *Ast, gpa: Allocator) void {
         ast.arena_state.promote(gpa).deinit();
         ast.* = undefined;
+    }
+
+    fn getRootNodesOrPrintError(ast: *Ast) ![]Node {
+        switch (ast.root) {
+            .fail_msg => |msg| {
+                std.debug.print("{s}\n", .{msg});
+                return error.ParseFailed;
+            },
+            .nodes => |nodes| return nodes,
+        }
     }
 };
 
@@ -73,10 +154,10 @@ const Parse = struct {
         parse.top_level.deinit(parse.gpa);
     }
 
-    fn fail(parse: *Parse, msg: []const u8) Error {
-        parse.fail_msg = try std.fmt.allocPrint(parse.arena, "{s}:{d}:{d}: error: {s}", .{
-            parse.file_name, parse.line, parse.column, msg,
-        });
+    fn fail(parse: *Parse, comptime format: []const u8, args: anytype) Error {
+        parse.fail_msg = try std.fmt.allocPrint(parse.arena, "{s}:{d}:{d}: error: " ++ format, .{
+            parse.file_name, parse.line + 1, parse.column + 1,
+        } ++ args);
         return error.ParseFail;
     }
 
@@ -88,8 +169,14 @@ const Parse = struct {
         return ident;
     }
 
+    fn expectNodeEnd(parse: *Parse) Error!void {
+        parse.skipWhiteSpace();
+        if (!parse.eatBytes("%}")) return parse.fail("expected '%}}'", .{});
+        parse.skipWhiteSpace();
+    }
+
     fn eatBytes(parse: *Parse, expected_bytes: []const u8) bool {
-        if (parse.index + expected_bytes.len >= parse.source.len) return false;
+        if (parse.index + expected_bytes.len > parse.source.len) return false;
         const source_bytes = parse.source[parse.index..][0..expected_bytes.len];
         if (!mem.eql(u8, expected_bytes, source_bytes)) return false;
         parse.skipForward(expected_bytes.len);
@@ -108,7 +195,7 @@ const Parse = struct {
                     parse.skipWhiteSpace();
                     return ident;
                 },
-                else => return parse.fail("expected letter or space"),
+                else => return parse.fail("expected letter or space", .{}),
             }
         }
         return parse.source[start_index..parse.index];
@@ -125,7 +212,7 @@ const Parse = struct {
                         parse.column += 1;
                         state = .inside;
                     },
-                    else => return parse.fail("expected double quote"),
+                    else => return parse.fail("expected double quote", .{}),
                 },
                 .inside => switch (byte) {
                     '"' => {
@@ -133,12 +220,12 @@ const Parse = struct {
                         parse.index += 1;
                         const unparsed_string = parse.source[start_index..parse.index];
                         const parsed = std.zig.string_literal.parseAlloc(parse.arena, unparsed_string) catch |err| switch (err) {
-                            error.InvalidLiteral => return parse.fail("invalid string literal"),
+                            error.InvalidLiteral => return parse.fail("invalid string literal", .{}),
                             else => |e| return e,
                         };
                         return parsed;
                     },
-                    '\n' => return parse.fail("newline in string literal"),
+                    '\n' => return parse.fail("newline in string literal", .{}),
                     '\\' => {
                         parse.column += 1;
                         state = .escape;
@@ -148,7 +235,7 @@ const Parse = struct {
                     },
                 },
                 .escape => switch (byte) {
-                    '\n' => return parse.fail("newline in string literal"),
+                    '\n' => return parse.fail("newline in string literal", .{}),
                     else => {
                         parse.column += 1;
                         state = .inside;
@@ -156,34 +243,62 @@ const Parse = struct {
                 },
             }
         }
-        return parse.fail("unexpected EOF");
+        return parse.fail("unexpected EOF", .{});
     }
 
     fn expectContent(parse: *Parse) Error![]Ast.Node {
         var inside: std.ArrayListUnmanaged(Ast.Node) = .{};
-
-        while (true) {
+        var opt_text_start: ?usize = null;
+        while (parse.index < parse.source.len) {
+            const node_start_index = parse.index;
             if (try parse.eatNodeStart()) |node_ident| {
+                if (opt_text_start) |text_start| {
+                    try inside.append(parse.arena, .{ .content = parse.source[text_start..node_start_index] });
+                    opt_text_start = null;
+                }
                 if (mem.eql(u8, node_ident, "extends")) {
                     const filename = try parse.expectStringLiteral();
                     try inside.append(parse.arena, .{ .extends = filename });
+                    try parse.expectNodeEnd();
                 } else if (mem.eql(u8, node_ident, "block")) {
                     const block_name = try parse.expectIdentifier();
+                    try parse.expectNodeEnd();
                     const sub_content = try parse.expectContent();
                     try inside.append(parse.arena, .{ .block = .{
                         .name = block_name,
                         .inside = sub_content,
                     } });
+                } else if (mem.eql(u8, node_ident, "endblock") or
+                    mem.eql(u8, node_ident, "endfor"))
+                {
+                    try parse.expectNodeEnd();
+                    return inside.items;
+                } else if (mem.eql(u8, node_ident, "for")) {
+                    const capture_name = try parse.expectIdentifier();
+                    const in_ident = try parse.expectIdentifier();
+                    if (!mem.eql(u8, in_ident, "in")) {
+                        return parse.fail("expected 'in', found '{s}'", .{in_ident});
+                    }
+                    const collection_name = try parse.expectIdentifier();
+                    try parse.expectNodeEnd();
+                    const body = try parse.expectContent();
+                    try inside.append(parse.arena, .{ .for_loop = .{
+                        .capture_name = capture_name,
+                        .collection_name = collection_name,
+                        .body = body,
+                    } });
                 } else {
-                    return parse.fail("unrecognized node name");
+                    return parse.fail("unrecognized node name: '{s}'", .{node_ident});
                 }
                 continue;
             }
 
-            break;
+            // Look for text in between special nodes.
+            if (opt_text_start == null) {
+                opt_text_start = parse.index;
+            }
+            parse.skipForward(1);
         }
-
-        // TODO: look for normal text
 
         return inside.items;
     }
@@ -224,12 +339,11 @@ const Parse = struct {
 };
 
 fn compile(swig: *Swig, view_filename: []const u8) !Ast {
-    const view_source = try swig.views_dir.readFileAlloc(swig.gpa, view_filename, swig.max_size);
-    defer swig.gpa.free(view_source);
-
     var arena_instance = std.heap.ArenaAllocator.init(swig.gpa);
     errdefer arena_instance.deinit();
     const arena = arena_instance.allocator();
+
+    const view_source = try swig.views_dir.readFileAlloc(arena, view_filename, swig.max_size);
 
     var parse: Parse = .{
         .gpa = swig.gpa,
@@ -264,10 +378,16 @@ test "basic parsing" {
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
 
+    //const input = @embedFile("../views/home.html");
     const input =
+        \\{% extends "base.html" %}
         \\{% block content %}
         \\<h2>Posts</h2>
-        \\<p>blah blah</p>
+        \\{% for post in posts %}
+        \\<p>post</p>
+        \\ <li>{{ post.date }}
+        \\{% endfor %}
+        \\<p>after for</p>
         \\{% endblock %}
     ;
 
@@ -286,7 +406,40 @@ test "basic parsing" {
         .nodes => |nodes| {
             std.debug.print("\n", .{});
             for (nodes) |node| {
-                std.debug.print("tag={s}\n", .{@tagName(std.meta.activeTag(node))});
+                try debugPrintNode(node, 0);
+            }
+        },
+    }
+}
+
+fn debugPrintNode(node: Ast.Node, indent: usize) std.fs.File.WriteError!void {
+    const w = std.io.getStdErr().writer();
+    try w.writeByteNTimes(' ', indent);
+    switch (node) {
+        .extends => |name| {
+            try w.print("extends '{s}'\n", .{name});
+        },
+        .content => |text| {
+            try w.print("content '{s}'\n", .{text});
+        },
+        .block => |block| {
+            try w.print("block '{s}'\n", .{block.name});
+            for (block.inside) |sub_node| {
+                try debugPrintNode(sub_node, indent + 1);
+            }
+        },
+        .for_loop => |for_loop| {
+            try w.print("for_loop '{s}' in '{s}'\n", .{
+                for_loop.capture_name, for_loop.collection_name,
+            });
+            for (for_loop.body) |sub_node| {
+                try debugPrintNode(sub_node, indent + 1);
+            }
+        },
+        .auto_escape => |auto_escape| {
+            try w.print("auto_escape {}\n", .{auto_escape.setting});
+            for (auto_escape.inside) |sub_node| {
+                try debugPrintNode(sub_node, indent + 1);
             }
         },
     }
