@@ -68,7 +68,7 @@ pub fn render(
     try bw.flush();
 }
 
-fn renderBody(w: anytype, body: []Ast.Node, args: anytype) @TypeOf(w).Error!void {
+fn renderBody(w: anytype, body: []Ast.Node, args: anytype) (@TypeOf(w).Error || error{RenderFail})!void {
     for (body) |node| switch (node) {
         .extends => unreachable,
         .block => |block| {
@@ -78,9 +78,25 @@ fn renderBody(w: anytype, body: []Ast.Node, args: anytype) @TypeOf(w).Error!void
             try w.writeAll(text);
         },
         .for_loop => |for_loop| {
-            _ = args;
-            _ = for_loop;
-            try w.writeAll("TODO for loop");
+            const fields = switch (@typeInfo(@TypeOf(args))) {
+                .Struct => |s| s.fields,
+                else => {
+                    std.debug.print("expected args to be struct, found {s}", .{@tagName(@typeInfo(@TypeOf(args)))});
+                    return error.RenderFail;
+                },
+            };
+            inline for (fields) |field| {
+                if (mem.eql(u8, field.name, for_loop.collection_name)) {
+                    const slice = @field(args, field.name);
+                    for (slice) |element| {
+                        try renderBody(w, for_loop.body, element);
+                    }
+                    break;
+                }
+            } else {
+                std.debug.print("no parameter named '{s}'\n", .{for_loop.collection_name});
+                return error.RenderFail;
+            }
         },
         .auto_escape => {
             @panic("TODO auto escape");
