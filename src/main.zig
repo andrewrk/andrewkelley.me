@@ -206,19 +206,17 @@ fn readPostContentAndGenerateRss(
         .image_url = "https://s3.amazonaws.com/superjoe/blog-files/profile-48x58.jpg",
         .author = "Andrew Kelley",
     };
-    for (post_list) |*post, i| {
+    for (&post_list) |*post| {
         post.content = try posts_dir.readFileAlloc(arena, post.filename, 10 * 1024 * 1024);
-        if (i < 25) {
-            _ = feed;
-            //try feed.add(.{
-            //    .title = post.title,
-            //    .description = post.content,
-            //    .url = try fmt.allocPrint(arena, "https://andrewkelley.me/post/{s}", .{
-            //        post.filename,
-            //    }),
-            //    .date = post.date,
-            //});
-        }
+        _ = feed;
+        //try feed.add(.{
+        //    .title = post.title,
+        //    .description = post.content,
+        //    .url = try fmt.allocPrint(arena, "https://andrewkelley.me/post/{s}", .{
+        //        post.filename,
+        //    }),
+        //    .date = post.date,
+        //});
     }
     _ = build_dir;
     //try feed.render(build_dir, "rss.xml");

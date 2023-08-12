@@ -81,7 +81,9 @@ fn renderBody(w: anytype, body: []Ast.Node, args: anytype) (@TypeOf(w).Error || 
             const fields = switch (@typeInfo(@TypeOf(args))) {
                 .Struct => |s| s.fields,
                 else => {
-                    std.debug.print("expected args to be struct, found {s}", .{@tagName(@typeInfo(@TypeOf(args)))});
+                    std.debug.print("expected args to be struct, found {s}", .{
+                        @tagName(@typeInfo(@TypeOf(args))),
+                    });
                     return error.RenderFail;
                 },
             };
@@ -101,6 +103,15 @@ fn renderBody(w: anytype, body: []Ast.Node, args: anytype) (@TypeOf(w).Error || 
         .auto_escape => {
             @panic("TODO auto escape");
         },
+        .ident => {
+            @panic("TODO ident");
+        },
+        .field_access => {
+            @panic("TODO field_access");
+        },
+        .filter => {
+            @panic("TODO filter");
+        },
     };
 }
 
@@ -119,6 +130,20 @@ const Ast = struct {
         block: Block,
         for_loop: For,
         auto_escape: AutoEscape,
+        ident: []const u8,
+        field_access: FieldAccess,
+        filter: Filter,
+    };
+
+    const FieldAccess = struct {
+        lhs: *Node,
+        name: []const u8,
+    };
+
+    const Filter = struct {
+        lhs: *Node,
+        name: []const u8,
+        arg: []const u8,
     };
 
     const For = struct {
@@ -183,6 +208,14 @@ const Parse = struct {
         const ident = try parse.expectIdentifier();
         parse.skipWhiteSpace();
         return ident;
+    }
+
+    fn eatExpr(parse: *Parse) Error!Ast.Node {
+        if (!parse.eatBytes("{{")) return null;
+        parse.skipWhiteSpace();
+        const expr = try parse.expectExpr();
+        parse.skipWhiteSpace();
+        return expr;
     }
 
     fn expectNodeEnd(parse: *Parse) Error!void {
@@ -260,6 +293,17 @@ const Parse = struct {
             }
         }
         return parse.fail("unexpected EOF", .{});
+    }
+
+    fn expectExpr(p: *Parse) Error!Ast.Node {
+        while (p.index < p.source.len) : (p.index += 1) {
+            switch (p.source[p.index]) {
+                '.' => {},
+                '}', ' ' => {},
+                '|' => {},
+                else => |c| return p.fail("unexpected byte: '{c}'", .{c}),
+            }
+        }
     }
 
     fn expectContent(parse: *Parse) Error![]Ast.Node {
@@ -457,6 +501,14 @@ fn debugPrintNode(node: Ast.Node, indent: usize) std.fs.File.WriteError!void {
             for (auto_escape.inside) |sub_node| {
                 try debugPrintNode(sub_node, indent + 1);
             }
+        },
+        .field_access => |field_access| {
+            try w.print("field_access '{s}'\n", .{field_access.name});
+            try debugPrintNode(field_access.lhs.*, indent + 1);
+        },
+        .filter => |filter| {
+            try w.print("filter | {s}('{s}')\n", .{ filter.name, filter.arg });
+            try debugPrintNode(filter.lhs.*, indent + 1);
         },
     }
 }
