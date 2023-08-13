@@ -181,10 +181,10 @@ pub fn main() anyerror!void {
     try readPostContentAndGenerateRss(arena, &swig, build_dir, posts_dir);
 
     try swig.render(build_dir, "index.html", "home.html", .{ .posts = post_list });
-    //try swig.render(build_dir, "donate/index.html", "donate.html", .{});
-    //for (post_list) |post| {
-    //    try swig.render(build_post_dir, post.filename, "post.html", .{ .post = post });
-    //}
+    try swig.render(build_dir, "donate/index.html", "donate.html", .{});
+    for (post_list) |post| {
+        try swig.render(build_post_dir, post.filename, "post.html", .{ .post = post });
+    }
 }
 
 fn readPostContentAndGenerateRss(

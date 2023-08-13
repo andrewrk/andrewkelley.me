@@ -106,14 +106,19 @@ fn renderMap(
                         });
                         return error.RenderFail;
                     };
+                    base_block.parent_inside = base_block.inside;
                     base_block.inside = overriding_block.inside;
                 },
                 else => continue,
             };
 
             // Iterate over the base view again, this time writing to the output.
-            var captures: Map = .{};
-            try renderBody(w, arena, base_nodes, map, &captures);
+            var context: RenderContext = .{
+                .arena = arena,
+                .captures = .{},
+                .auto_escape = true,
+            };
+            try renderBody(w, &context, base_nodes, &.{}, map);
         },
         else => {
             std.debug.print("expected an 'extends' node", .{});
@@ -124,24 +129,33 @@ fn renderMap(
     try bw.flush();
 }
 
+const RenderContext = struct {
+    arena: Allocator,
+    captures: Map,
+    auto_escape: bool,
+};
+
 fn renderBody(
     w: anytype,
-    arena: Allocator,
+    context: *RenderContext,
     body: []Ast.Node,
+    parent_body: []Ast.Node,
     map: Map,
-    captures: *Map,
 ) (@TypeOf(w).Error || error{ RenderFail, OutOfMemory })!void {
     for (body) |node| switch (node) {
         .extends => unreachable,
         .block => |block| {
-            try renderBody(w, arena, block.inside, map, captures);
+            try renderBody(w, context, block.inside, block.parent_inside, map);
+        },
+        .parent => {
+            try renderBody(w, context, parent_body, &.{}, map);
         },
         .content => |text| {
             try w.writeAll(text);
         },
         .for_loop => |for_loop| {
             const value =
-                captures.get(for_loop.collection_name) orelse
+                context.captures.get(for_loop.collection_name) orelse
                 map.get(for_loop.collection_name) orelse
                 {
                 std.debug.print("no parameter named '{s}'\n", .{for_loop.collection_name});
@@ -155,27 +169,30 @@ fn renderBody(
                 },
             };
 
-            try captures.ensureUnusedCapacity(arena, 1);
+            try context.captures.ensureUnusedCapacity(context.arena, 1);
 
             for (slice) |element| {
-                captures.putAssumeCapacity(for_loop.capture_name, element);
-                try renderBody(w, arena, for_loop.body, map, captures);
-                assert(captures.remove(for_loop.capture_name));
+                context.captures.putAssumeCapacity(for_loop.capture_name, element);
+                try renderBody(w, context, for_loop.body, parent_body, map);
+                assert(context.captures.remove(for_loop.capture_name));
             }
         },
-        .auto_escape => {
-            @panic("TODO auto escape");
+        .auto_escape => |auto_escape| {
+            const prev = context.auto_escape;
+            context.auto_escape = auto_escape.setting;
+            try renderBody(w, context, auto_escape.inside, parent_body, map);
+            context.auto_escape = prev;
         },
         .ident => |name| {
-            const v = try identifier(name, map, captures);
+            const v = try identifier(name, map, &context.captures);
             try renderValue(w, v);
         },
         .field_access => |field_access| {
-            const v = try fieldAccess(field_access.lhs.*, field_access.name, map, captures);
+            const v = try fieldAccess(field_access.lhs.*, field_access.name, map, &context.captures);
             try renderValue(w, v);
         },
         .filter => |f| {
-            const v = try evalFilter(arena, f, map, captures);
+            const v = try evalFilter(context, f, map);
             try renderValue(w, v);
         },
     };
@@ -195,18 +212,18 @@ fn renderValue(w: anytype, v: Value) !void {
     }
 }
 
-fn evalFilter(arena: Allocator, filter: Ast.Filter, map: Map, captures: *Map) !Value {
+fn evalFilter(context: *RenderContext, filter: Ast.Filter, map: Map) !Value {
     const v = switch (filter.lhs.*) {
-        .ident => |ident_name| try identifier(ident_name, map, captures),
-        .field_access => |fa| try fieldAccess(fa.lhs.*, fa.name, map, captures),
-        .filter => |f| try evalFilter(arena, f, map, captures),
+        .ident => |ident_name| try identifier(ident_name, map, &context.captures),
+        .field_access => |fa| try fieldAccess(fa.lhs.*, fa.name, map, &context.captures),
+        .filter => |f| try evalFilter(context, f, map),
         else => {
             std.debug.print("field access of '{s}' node\n", .{@tagName(filter.lhs.*)});
             return error.RenderFail;
         },
     };
     if (mem.eql(u8, filter.name, "date")) {
-        return evalFilterDate(arena, v, filter.arg);
+        return evalFilterDate(context.arena, v, filter.arg);
     } else {
         std.debug.print("unrecognized filter name: '{s}'\n", .{filter.name});
         return error.RenderFail;
@@ -297,6 +314,8 @@ const Ast = struct {
         ident: []const u8,
         field_access: FieldAccess,
         filter: Filter,
+        /// Paste the parent's content here
+        parent: void,
     };
 
     const FieldAccess = struct {
@@ -319,6 +338,8 @@ const Ast = struct {
     const Block = struct {
         name: []const u8,
         inside: []Node,
+        // Non-overridden inside.
+        parent_inside: []Node,
     };
 
     const AutoEscape = struct {
@@ -533,9 +554,26 @@ const Parse = struct {
                     try inside.append(parse.arena, .{ .block = .{
                         .name = block_name,
                         .inside = sub_content,
+                        .parent_inside = sub_content,
+                    } });
+                } else if (mem.eql(u8, node_ident, "autoescape")) {
+                    const on_or_off = try parse.expectIdentifier();
+                    const setting = if (mem.eql(u8, on_or_off, "on"))
+                        true
+                    else if (mem.eql(u8, on_or_off, "off"))
+                        false
+                    else
+                        return parse.fail("expected 'on' or 'off', found '{s}'", .{on_or_off});
+
+                    try parse.expectNodeEnd();
+                    const sub_content = try parse.expectContent();
+                    try inside.append(parse.arena, .{ .auto_escape = .{
+                        .setting = setting,
+                        .inside = sub_content,
                     } });
                 } else if (mem.eql(u8, node_ident, "endblock") or
-                    mem.eql(u8, node_ident, "endfor"))
+                    mem.eql(u8, node_ident, "endfor") or
+                    mem.eql(u8, node_ident, "endautoescape"))
                 {
                     try parse.expectNodeEnd();
                     return inside.items;
@@ -553,6 +591,9 @@ const Parse = struct {
                         .collection_name = collection_name,
                         .body = body,
                     } });
+                } else if (mem.eql(u8, node_ident, "parent")) {
+                    try inside.append(parse.arena, .parent);
+                    try parse.expectNodeEnd();
                 } else {
                     return parse.fail("unrecognized node name: '{s}'", .{node_ident});
                 }
@@ -575,6 +616,12 @@ const Parse = struct {
             parse.skipForward(1);
         }
 
+        if (opt_text_start) |text_start| {
+            try inside.append(parse.arena, .{
+                .content = parse.source[text_start..],
+            });
+            opt_text_start = null;
+        }
         return inside.items;
     }
 
@@ -664,6 +711,7 @@ test "basic parsing" {
         \\{% endfor %}
         \\<p>after for</p>
         \\{% endblock %}
+        \\<p>after end block</p>
     ;
 
     try tmp.dir.writeFile("home.html", input);
@@ -727,6 +775,9 @@ fn debugPrintNode(node: Ast.Node, indent: usize) std.fs.File.WriteError!void {
         },
         .ident => |ident| {
             try w.print("ident '{s}'\n", .{ident});
+        },
+        .parent => {
+            try w.print("parent\n", .{});
         },
     }
 }
