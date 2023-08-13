@@ -1,14 +1,15 @@
 {% extends "base.html" %}
 
 {% block content %}
+<h1>Andrew Kelley</h1>
 <h2>Posts</h2>
-<ul class="unstyled">
+<ul>
   {% for post in posts %}
   <li>{{ post.date | date("Y M d") }} - <a href="post/{{ post.filename }}">{{ post.title }}</a></li>
   {% endfor %}
 </ul>
 <h2>Projects</h2>
-<ul class="unstyled" style="margin-top: 12px">
+<ul>
   <li>
   <a href="http://ziglang.org/">Zig</a> - a system programming language intended to replace C.
   </li>
@@ -39,12 +40,12 @@
   </li>
 </ul>
 <h2>Game Jams</h2>
-<div class="media">
-  <a class="pull-left" href="https://s3.amazonaws.com/superjoe/temp/face-the-music/index.html">
-    <img class="media-object" src="https://s3.amazonaws.com/superjoe/blog-files/face-the-music-title-small.png">
+<div>
+  <a href="https://s3.amazonaws.com/superjoe/temp/face-the-music/index.html">
+    <img src="https://s3.amazonaws.com/superjoe/blog-files/face-the-music-title-small.png">
   </a>
-  <div class="media-body">
-    <h4 class="media-heading">Face the Music</h4>
+  <div>
+    <h4>Face the Music</h4>
     <p>
     Rock your way out of being trampled by a mob of screaming fans.
     You can
@@ -52,12 +53,12 @@
     </p>
   </div>
 </div>
-<div class="media">
-  <a class="pull-left" href="https://s3.amazonaws.com/superjoe/temp/purgatory/index.html">
-    <img class="media-object" src="https://s3.amazonaws.com/superjoe/blog-files/purgatory-title-small.png">
+<div>
+  <a href="https://s3.amazonaws.com/superjoe/temp/purgatory/index.html">
+    <img src="https://s3.amazonaws.com/superjoe/blog-files/purgatory-title-small.png">
   </a>
-  <div class="media-body">
-    <h4 class="media-heading">Purgatory</h4>
+  <div>
+    <h4>Purgatory</h4>
     <p>
     Escape from the circles of hell. 7 hour game jam.
     You can
@@ -65,12 +66,12 @@
     </p>
   </div>
 </div>
-<div class="media">
-  <a class="pull-left" href="https://s3.amazonaws.com/superjoe/temp/pillagers/index.html">
-    <img class="media-object" src="https://s3.amazonaws.com/superjoe/blog-files/pillagers-title-small.png">
+<div>
+  <a href="https://s3.amazonaws.com/superjoe/temp/pillagers/index.html">
+    <img src="https://s3.amazonaws.com/superjoe/blog-files/pillagers-title-small.png">
   </a>
-  <div class="media-body">
-    <h4 class="media-heading">Pillagers!</h4>
+  <div>
+    <h4>Pillagers!</h4>
     <p>
     Real Time Strategy game with space physics, made for <a href="http://www.ludumdare.com/compo/minild-44/?action=preview&uid=24697">7dRTS</a>.
     You can
@@ -79,12 +80,12 @@
     </p>
   </div>
 </div>
-<div class="media">
-  <a class="pull-left" href="https://s3.amazonaws.com/superjoe/temp/dr-chemicals-lab/index.html">
-    <img class="media-object" src="https://s3.amazonaws.com/superjoe/blog-files/dr-chemicals-lab-title-small.png">
+<div>
+  <a href="https://s3.amazonaws.com/superjoe/temp/dr-chemicals-lab/index.html">
+    <img src="https://s3.amazonaws.com/superjoe/blog-files/dr-chemicals-lab-title-small.png">
   </a>
-  <div class="media-body">
-    <h4 class="media-heading">Dr. Chemical's Lab</h4>
+  <div>
+    <h4>Dr. Chemical's Lab</h4>
     <p>
     arcade/simulation/multiplayer, made for <a href="http://pyweek.org/e/tboxthonton/">PyWeek #14</a>.
     You can
@@ -92,12 +93,12 @@
     </p>
   </div>
 </div>
-<div class="media">
-  <a class="pull-left" href="https://s3.amazonaws.com/superjoe/temp/lemming/index.html">
-    <img class="media-object" src="https://s3.amazonaws.com/superjoe/blog-files/lemming-title-small.png">
+<div>
+  <a href="https://s3.amazonaws.com/superjoe/temp/lemming/index.html">
+    <img src="https://s3.amazonaws.com/superjoe/blog-files/lemming-title-small.png">
   </a>
-  <div class="media-body">
-    <h4 class="media-heading">Lemming</h4>
+  <div>
+    <h4>Lemming</h4>
     <p>
     Side-scrolling platformer, made for <a href="http://pyweek.org/e/superjoe/">PyWeek #12</a>.
     You can
@@ -107,12 +108,12 @@
     </p>
   </div>
 </div>
-<div class="media">
-  <a class="pull-left" href="https://github.com/andrewrk/planetarius">
-    <img class="media-object" src="https://s3.amazonaws.com/superjoe/blog-files/planetarius-title-small.png">
+<div>
+  <a href="https://github.com/andrewrk/planetarius">
+    <img src="https://s3.amazonaws.com/superjoe/blog-files/planetarius-title-small.png">
   </a>
-  <div class="media-body">
-    <h4 class="media-heading">Planetarius</h4>
+  <div>
+    <h4>Planetarius</h4>
     <p>
     Networked multiplayer arcade shooter, made for <a href="http://www.ludumdare.com/compo/ludum-dare-30/?action=preview&uid=24697">Ludum Dare 30</a>.
     You can check out the
