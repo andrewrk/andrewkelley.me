@@ -39,9 +39,6 @@
   });
 </script>
 <h1>Statically Recompiling NES Games into Native Executables with LLVM and Go</h1>
-<p class="lead">
-  2013 June 7
-</p>
 <p>
   I have always wanted to write an emulator. I made a half-hearted attempt in college
   but it never made it to a demo-able state. I also didn't want to write Yet Another Emulator.
@@ -90,7 +87,7 @@
   and LLVM can optimize and generate native code for any of its supported backends.
   Here's an incomplete list:
 </p>
-<ul class="pull-left">
+<ul style="columns: 2">
   <li>ARM</li>
   <li>STI CBEA Cell SPU [experimental]</li>
   <li>C++ backend</li>
@@ -101,8 +98,6 @@
   <li>Mips64el [experimental]</li>
   <li>Mipsel</li>
   <li>MSP430 [experimental]</li>
-</ul>
-<ul class="pull-left">
   <li>NVIDIA PTX 32-bit</li>
   <li>NVIDIA PTX 64-bit</li>
   <li>PowerPC 32</li>
@@ -114,7 +109,6 @@
   <li>64-bit X86: EM64T and AMD64</li>
   <li>XCore</li>
 </ul>
-<span class="clearfix"></span>
 <p>
   Furthermore, you can write additional backends to support additional targets. For example,
   <a href="http://emscripten.org">emscripten</a> provides a JavaScript backend.
@@ -241,7 +235,7 @@ The NES uses memory-mapped I/O, which means that, to interact with hardware, you
 write to special memory addresses. Take a look at a simplified version of the memory layout
 of the NES at runtime:
 </p>
-<table class="table">
+<table>
   <tr>
     <th>Start</th>
     <th>End</th>
@@ -305,7 +299,7 @@ This is why I created a custom Application Binary Interface to make it a little 
 Refer back to the memory layout above, and recall that many addresses are unused.
 I decided to add a couple things:
 </p>
-<table class="table">
+<table>
   <tr>
     <th>Address</th>
     <th>Description</th>
@@ -395,7 +389,7 @@ meaning. When a game starts, the NES reads the 2 bytes at <code>$fffc</code> and
   Next let's talk about the CPU. In the code snippet above I used register A and register X.
   There are 6 registers total:
 </p>
-<table class="table">
+<table>
   <tr>
     <th>
       Name
@@ -1045,7 +1039,7 @@ func main() {
 Now we need to compile this code. At this point, we can no longer rely on Go
 to build everything because we now have 2 generated Go files:
 </p>
-<table class="table">
+<table>
   <tr>
     <th>
       Source File
@@ -1198,7 +1192,7 @@ to replace the following <code>.db</code> statements as part of the instruction
 as necessary. Then, based on the instruction, we want to recursively
 mark other locations as instructions:
 </p>
-<table class="table">
+<table>
   <tr>
     <th>
       Instruction
@@ -1263,7 +1257,7 @@ address is not constant, so these instructions do not help us know what else to 
 <p>
 As seen in this table, there are 2 types of <code>JMP</code> instructions: absolute and indirect:
 </p>
-<table class="table">
+<table>
   <tr>
     <th>
       JMP Type
@@ -1754,7 +1748,7 @@ These bits, along with the other status bits that we did not mention yet,
 are updated after certain instructions and used for things such as branching.
 Here is a full description of all the status bits:
 </p>
-<table class="table">
+<table>
   <tr>
     <th>
       Bit Mask
@@ -2327,7 +2321,7 @@ that you run on a module.
 Let's run several optimization passes on the module we generate before rendering
 bitcode:
 </p>
-<table class="table">
+<table>
   <tr>
     <th>
       Optimization Name
@@ -2512,7 +2506,7 @@ The first "real" ROM I tried to recompile is this demo ROM made by
 <a href="https://www.castledragmire.com/hynes/reference/resource/index.html">Zelda Title Screen Simulator</a>.
 If you run this ROM in an emulator, you get a title screen that looks nearly identical to Zelda 1:
 </p>
-<img alt="" src="https://s3.amazonaws.com/superjoe/blog-files/jamulator/zelda-ref.png"/>
+<img alt="Zelda title screen screenshot" src="https://s3.amazonaws.com/superjoe/blog-files/jamulator/zelda-ref.png"/>
 <p>
 Now that we're recompiling a real ROM, we'll have to do several more
 things to make it work:
@@ -2927,7 +2921,7 @@ Again, writing the code to pack the rom back together into an
 <p>
 Now we observe the ROM running in an emulator and see if it still works:
 </p>
-<img alt="" src="https://superjoe.s3.amazonaws.com/blog-files/jamulator/zelda-bent.png"/>
+<img alt="Screenshot of the Zelda title screen but the sword is bent" src="https://superjoe.s3.amazonaws.com/blog-files/jamulator/zelda-bent.png"/>
 <p>
 Ha! It works but the sword is bent. That's actually pretty convenient - now
 when we want to make interrupts work, we know how to test them.
@@ -3573,7 +3567,7 @@ $
 And so here we have it: an executable binary that depends on SDL and OpenGL, which
 supposedly will execute the Zelda Title Screen Simulator when run. Does it work?
 </p>
-<img src="https://superjoe.s3.amazonaws.com/blog-files/jamulator/zelda-exe.png" alt="">
+<img src="https://superjoe.s3.amazonaws.com/blog-files/jamulator/zelda-exe.png" alt="screenshot of Zelda title screen with bent sword and an ubuntu terminal showing some log output">
 <p>
 <small>
 Note: There is an obvious discrepancy between the screenshot and the output listed
@@ -4383,7 +4377,7 @@ The solution is to embed an interpreter runtime in the generated binary:
 <p>
 Here's a diagram to help clarify:
 </p>
-<img src="https://superjoe.s3.amazonaws.com/blog-files/jamulator/interpret-block.svg">
+<img src="https://superjoe.s3.amazonaws.com/blog-files/jamulator/interpret-block.svg" alt="state machine diagram" class="bright">
 <p>
 This strategy ensures that NES games will run <em>correctly</em>,
 at the cost of efficiency.

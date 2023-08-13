@@ -4,14 +4,6 @@
     'property': /\b(bool|i8|u8|i16|u16|i32|u32|i64|u64|isize|usize|f32|f64|void|unreachable|type|error|c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong|noreturn)\b/,
   });
 </script>
-<style type="text/css">
-.red {
-  color: red;
-}
-.green {
-  color: green;
-}
-</style>
 <h1>Using Zig to Provide Stack Traces on Kernel Panic for a Bare Bones Operating System</h1>
 <p>Last week, I reached an exciting milestone in my career as a programmer.
 <a href="https://www.youtube.com/watch?v=gihdpLtHi9Q">For the first time in my life, I ran code directly on hardware</a>, with no Operating System sitting between the bare metal and my code.
@@ -46,7 +38,7 @@ the CPU:
 <pre><code class="language-diff">--- a/src/main.zig
 +++ b/src/main.zig
      serial.log("Hello World! ClashOS 0.0\n");
-<span class="green">+    var x: u8 = 255;
+<span class="diff1">+    var x: u8 = 255;
 +    x += 1;
 +    serial.log("got here\n");</span></code></pre>
 <p>When run, you'll see we never get to the "got here" message, but also
@@ -458,9 +450,4 @@ If this blog post captured your interest, maybe you would like to check out this
 <a href="https://github.com/andrewrk/HellOS">Hello World x86 Kernel</a>, which comes with a
 <a href="https://www.youtube.com/watch?v=yUge-ujPxzQ">video of me live coding it</a>.
 Thanks to an insightful Twitch comment, it works with only Zig code, no assembly required.
-</p>
-<p>
-The <a href="https://ziglang.org/">Zig Programming Language</a> is crowd funded,
-and is not beholden to any business or set of businesses. Please consider
-<a href="https://github.com/users/andrewrk/sponsorship">sponsoring my work</a>.
 </p>

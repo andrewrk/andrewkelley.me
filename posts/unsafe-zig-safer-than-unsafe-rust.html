@@ -27,9 +27,6 @@
 }
 </style>
 <h1>Unsafe Zig is Safer than Unsafe Rust</h1>
-<p class="lead">
-  2018 January 24
-</p>
 
 <p>Consider the following Rust code:</p>
 
@@ -221,7 +218,3 @@ possible alignment issues.
 In the situation where you need to assert to the compiler that something is more aligned than Zig thinks it is, you can use <a href="http://ziglang.org/documentation/master/#alignCast">@alignCast</a>.
 This inserts a cheap safety check in debug mode to make sure the alignment assertion is correct.
 </p>
-
-<p>Thanks for reading. If you would like to support the development of
-<a href="http://ziglang.org/">Zig</a>, please consider
-<a href="https://github.com/users/andrewrk/sponsorship">pledging $5/month</a>.</p>

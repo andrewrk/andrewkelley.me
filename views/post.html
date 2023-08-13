@@ -3,11 +3,24 @@
 {% block title %}{{ post.title }} - {% parent %}{% endblock %}
 
 {% block head %}
+<link type=text/css rel=stylesheet href="/prism.css">
 <script src="https://s3.amazonaws.com/superjoe/blog-files/prism.js"></script>
 {% endblock %}
 
 {% block content %}
+<div>
+<a href="/">Andrew Kelley</a> - {{ post.title }} ({{ post.date | date("Y M d") }})
+</div>
+<hr>
+<div class="post">
 {% autoescape off %}
 {{ post.content }}
 {% endautoescape %}
+</div>
+<hr>
+<p>Thanks for reading my blog post.</p>
+</p>
+<p><a href="/">Home Page</a> |
+<a href="/rss.xml">RSS feed</a> |
+<a href="https://ziglang.org/zsf">Sponsor the Zig Software Foundation</a>
 {% endblock %}
