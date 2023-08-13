@@ -2,6 +2,7 @@ const std = @import("std");
 const mem = std.mem;
 const fs = std.fs;
 const Allocator = std.mem.Allocator;
+const assert = std.debug.assert;
 const Swig = @This();
 
 gpa: Allocator,
@@ -14,6 +15,60 @@ pub fn render(
     out_path: []const u8,
     view_filename: []const u8,
     args: anytype,
+) !void {
+    var arena_instance = std.heap.ArenaAllocator.init(swig.gpa);
+    errdefer arena_instance.deinit();
+    const arena = arena_instance.allocator();
+
+    var map: Map = .{};
+    try map.ensureUnusedCapacity(arena, @typeInfo(@TypeOf(args)).Struct.fields.len);
+    inline for (@typeInfo(@TypeOf(args)).Struct.fields) |field| {
+        map.putAssumeCapacityNoClobber(field.name, try toValue(arena, @field(args, field.name)));
+    }
+    return renderMap(swig, arena, out_dir, out_path, view_filename, map);
+}
+
+fn toValue(arena: Allocator, arg: anytype) Allocator.Error!Value {
+    switch (@TypeOf(arg)) {
+        []u8, []const u8 => return .{ .string = arg },
+        else => {},
+    }
+    switch (@typeInfo(@TypeOf(arg))) {
+        .Struct => |s| {
+            var map: Map = .{};
+            try map.ensureUnusedCapacity(arena, s.fields.len);
+            inline for (s.fields) |field| {
+                map.putAssumeCapacityNoClobber(field.name, try toValue(arena, @field(arg, field.name)));
+            }
+            return .{ .map = map };
+        },
+        .Pointer => @compileError("TODO pointer type erasure: " ++ @typeName(@TypeOf(arg))),
+        .Array => |a| {
+            const list = try arena.alloc(Value, a.len);
+            for (list, arg) |*dest, src| {
+                dest.* = try toValue(arena, src);
+            }
+            return .{ .list = list };
+        },
+        else => @compileError("TODO type erasure code: " ++ @typeName(@TypeOf(arg))),
+    }
+}
+
+const Map = std.StringHashMapUnmanaged(Value);
+
+const Value = union(enum) {
+    string: []const u8,
+    list: []const Value,
+    map: Map,
+};
+
+fn renderMap(
+    swig: *Swig,
+    arena: Allocator,
+    out_dir: fs.Dir,
+    out_path: []const u8,
+    view_filename: []const u8,
+    map: Map,
 ) !void {
     var ast = try swig.compile(view_filename);
     defer ast.deinit(swig.gpa);
@@ -57,7 +112,8 @@ pub fn render(
             };
 
             // Iterate over the base view again, this time writing to the output.
-            try renderBody(w, base_nodes, args);
+            var captures: Map = .{};
+            try renderBody(w, arena, base_nodes, map, &captures);
         },
         else => {
             std.debug.print("expected an 'extends' node", .{});
@@ -68,51 +124,159 @@ pub fn render(
     try bw.flush();
 }
 
-fn renderBody(w: anytype, body: []Ast.Node, args: anytype) (@TypeOf(w).Error || error{RenderFail})!void {
+fn renderBody(
+    w: anytype,
+    arena: Allocator,
+    body: []Ast.Node,
+    map: Map,
+    captures: *Map,
+) (@TypeOf(w).Error || error{ RenderFail, OutOfMemory })!void {
     for (body) |node| switch (node) {
         .extends => unreachable,
         .block => |block| {
-            try renderBody(w, block.inside, args);
+            try renderBody(w, arena, block.inside, map, captures);
         },
         .content => |text| {
             try w.writeAll(text);
         },
         .for_loop => |for_loop| {
-            const fields = switch (@typeInfo(@TypeOf(args))) {
-                .Struct => |s| s.fields,
+            const value =
+                captures.get(for_loop.collection_name) orelse
+                map.get(for_loop.collection_name) orelse
+                {
+                std.debug.print("no parameter named '{s}'\n", .{for_loop.collection_name});
+                return error.RenderFail;
+            };
+            const slice = switch (value) {
+                .list => |slice| slice,
                 else => {
-                    std.debug.print("expected args to be struct, found {s}", .{
-                        @tagName(@typeInfo(@TypeOf(args))),
-                    });
+                    std.debug.print("for loop over non-list '{s}\n", .{@tagName(value)});
                     return error.RenderFail;
                 },
             };
-            inline for (fields) |field| {
-                if (mem.eql(u8, field.name, for_loop.collection_name)) {
-                    const slice = @field(args, field.name);
-                    for (slice) |element| {
-                        try renderBody(w, for_loop.body, element);
-                    }
-                    break;
-                }
-            } else {
-                std.debug.print("no parameter named '{s}'\n", .{for_loop.collection_name});
-                return error.RenderFail;
+
+            try captures.ensureUnusedCapacity(arena, 1);
+
+            for (slice) |element| {
+                captures.putAssumeCapacity(for_loop.capture_name, element);
+                try renderBody(w, arena, for_loop.body, map, captures);
+                assert(captures.remove(for_loop.capture_name));
             }
         },
         .auto_escape => {
             @panic("TODO auto escape");
         },
-        .ident => {
-            @panic("TODO ident");
+        .ident => |name| {
+            const v = try identifier(name, map, captures);
+            try renderValue(w, v);
         },
-        .field_access => {
-            @panic("TODO field_access");
+        .field_access => |field_access| {
+            const v = try fieldAccess(field_access.lhs.*, field_access.name, map, captures);
+            try renderValue(w, v);
         },
-        .filter => {
-            @panic("TODO filter");
+        .filter => |f| {
+            const v = try evalFilter(arena, f, map, captures);
+            try renderValue(w, v);
         },
     };
+}
+
+fn renderValue(w: anytype, v: Value) !void {
+    switch (v) {
+        .string => |s| try w.writeAll(s),
+        .list => {
+            std.debug.print("cannot render list value\n", .{});
+            return error.RenderFail;
+        },
+        .map => {
+            std.debug.print("cannot render map value\n", .{});
+            return error.RenderFail;
+        },
+    }
+}
+
+fn evalFilter(arena: Allocator, filter: Ast.Filter, map: Map, captures: *Map) !Value {
+    const v = switch (filter.lhs.*) {
+        .ident => |ident_name| try identifier(ident_name, map, captures),
+        .field_access => |fa| try fieldAccess(fa.lhs.*, fa.name, map, captures),
+        .filter => |f| try evalFilter(arena, f, map, captures),
+        else => {
+            std.debug.print("field access of '{s}' node\n", .{@tagName(filter.lhs.*)});
+            return error.RenderFail;
+        },
+    };
+    if (mem.eql(u8, filter.name, "date")) {
+        return evalFilterDate(arena, v, filter.arg);
+    } else {
+        std.debug.print("unrecognized filter name: '{s}'\n", .{filter.name});
+        return error.RenderFail;
+    }
+}
+
+fn evalFilterDate(arena: Allocator, v: Value, arg: []const u8) !Value {
+    if (!mem.eql(u8, "Y M d", arg)) {
+        std.debug.print("only the date filter 'Y M d' is supported currently (found '{s}')\n", .{
+            arg,
+        });
+        return error.RenderFail;
+    }
+    const s = switch (v) {
+        .string => |s| s,
+        else => {
+            std.debug.print("date filter on non-string value '{s}'\n", .{@tagName(v)});
+            return error.RenderFail;
+        },
+    };
+    const year = s[0..4];
+    const month = s[5..][0..2];
+    const day = s[8..][0..2];
+    const months = [_][]const u8{
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    };
+    const month_int = std.fmt.parseInt(u8, month, 10) catch {
+        std.debug.print("bad month integer: {s}\n", .{month});
+        return error.RenderFail;
+    };
+    return .{ .string = try std.fmt.allocPrint(arena, "{s} {s} {s}", .{
+        year, months[month_int - 1], day,
+    }) };
+}
+
+fn identifier(name: []const u8, map: Map, captures: *Map) !Value {
+    return captures.get(name) orelse map.get(name) orelse {
+        std.debug.print("no value in scope named '{s}'\n", .{name});
+        return error.RenderFail;
+    };
+}
+
+fn fieldAccess(
+    lhs: Ast.Node,
+    name: []const u8,
+    map: Map,
+    captures: *Map,
+) !Value {
+    const aggregate = switch (lhs) {
+        .ident => |ident_name| try identifier(ident_name, map, captures),
+        .field_access => |fa| try fieldAccess(fa.lhs.*, fa.name, map, captures),
+        else => {
+            std.debug.print("field access of '{s}' node\n", .{@tagName(lhs)});
+            return error.RenderFail;
+        },
+    };
+
+    switch (aggregate) {
+        .map => |sub_map| {
+            return sub_map.get(name) orelse {
+                std.debug.print("map has no field named '{s}'\n", .{name});
+                return error.RenderFail;
+            };
+        },
+        else => {
+            std.debug.print("field access of '{s}' value\n", .{@tagName(aggregate)});
+            return error.RenderFail;
+        },
+    }
 }
 
 const Ast = struct {
@@ -214,7 +378,6 @@ const Parse = struct {
         if (!parse.eatBytes("{{")) return null;
         parse.skipWhiteSpace();
         const expr = try parse.expectExpr();
-        parse.skipWhiteSpace();
         return expr;
     }
 
@@ -244,11 +407,11 @@ const Parse = struct {
                     parse.skipWhiteSpace();
                     return ident;
                 },
-                '.', '|', '}' => {
+                '.', '|', '}', '(', ')' => {
                     const ident = parse.source[start_index..parse.index];
                     return ident;
                 },
-                else => return parse.fail("expected letter or space", .{}),
+                else => |c| return parse.fail("expected letter or space, found '{c}'", .{c}),
             }
         }
         return parse.source[start_index..parse.index];
@@ -302,21 +465,51 @@ const Parse = struct {
     fn expectExpr(p: *Parse) Error!Ast.Node {
         const ident_name = try p.expectIdentifier();
         p.skipWhiteSpace();
-        switch (p.source[p.index]) {
-            '.' => {
+        return p.finishExpr(.{ .ident = ident_name });
+    }
+
+    fn finishExpr(p: *Parse, lhs: Ast.Node) Error!Ast.Node {
+        const result: Ast.Node = switch (p.source[p.index]) {
+            '.' => r: {
                 p.skipForward(1);
                 const field_name = try p.expectIdentifier();
-                const ident_node = try p.arena.create(Ast.Node);
-                ident_node.* = .{ .ident = ident_name };
-                return .{ .field_access = .{
-                    .lhs = ident_node,
+                break :r .{ .field_access = .{
+                    .lhs = blk: {
+                        const copy = try p.arena.create(Ast.Node);
+                        copy.* = lhs;
+                        break :blk copy;
+                    },
                     .name = field_name,
                 } };
             },
-            '|' => @panic("TODO | expr"),
-            '}' => @panic("TODO end expr"),
-            else => |c| return p.fail("unexpected byte: '{c}'", .{c}),
-        }
+            '|' => r: {
+                p.skipForward(1);
+                p.skipWhiteSpace();
+                const filter_name = try p.expectIdentifier();
+                if (!p.eatBytes("(")) return p.fail("expected '('", .{});
+                const arg = try p.expectStringLiteral();
+                if (!p.eatBytes(")")) return p.fail("expected ')'", .{});
+
+                break :r .{ .filter = .{
+                    .lhs = blk: {
+                        const copy = try p.arena.create(Ast.Node);
+                        copy.* = lhs;
+                        break :blk copy;
+                    },
+                    .name = filter_name,
+                    .arg = arg,
+                } };
+            },
+            '}' => lhs,
+            else => |c| return p.fail("expected '.', '|', or '}}', found '{c}'", .{c}),
+        };
+
+        p.skipWhiteSpace();
+
+        if (p.eatBytes("}}"))
+            return result;
+
+        return p.finishExpr(result);
     }
 
     fn expectContent(parse: *Parse) Error![]Ast.Node {
@@ -467,7 +660,7 @@ test "basic parsing" {
         \\<h2>Posts</h2>
         \\{% for post in posts %}
         \\<p>post</p>
-        \\ <li>{{ post.date }}
+        \\ <li>{{ post.date | date("Y M d") }}</li>
         \\{% endfor %}
         \\<p>after for</p>
         \\{% endblock %}

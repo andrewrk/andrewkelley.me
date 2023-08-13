@@ -42,7 +42,7 @@ var post_list = [_]Post{
     .{
         .filename = "zig-january-2018-in-review.html",
         .date = "2018-02-11T06:54:50.195Z",
-        .title = "Zig = January 2018 in Review",
+        .title = "Zig: January 2018 in Review",
     },
     .{
         .filename = "unsafe-zig-safer-than-unsafe-rust.html",
