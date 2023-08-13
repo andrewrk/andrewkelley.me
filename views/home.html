@@ -1,13 +1,70 @@
 {% extends "base.html" %}
 
+{% block head %}
+<style type="text/css">
+img.profile {
+  width: 10em;
+  float: left;
+  padding: 1em;
+}
+h2 {
+  padding: 0;
+  margin: 0;
+}
+.dark {
+  display: none;
+}
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0.5em;
+}
+li {
+  margin: 0;
+  padding: 0.1em;
+}
+.thumbnail {
+  float: left;
+  clear: both;
+  margin: 0 1em 2em 0;
+  padding: 0;
+}
+.jam {
+  clear:both;
+}
+@media (prefers-color-scheme: dark) {
+  .dark {
+    display: block;
+  }
+  .light {
+    display: none;
+  }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<h1>Andrew Kelley</h1>
+<div style="max-width: 42em; margin: 0; padding: 0;">
+  <img class="profile light" alt="Bright profile picture of Andrew" src="/img/profile-flowers.jpg">
+  <img class="profile dark" alt="Dark profile picture of Andrew" src="/img/profile-cartopia.jpg">
+  <h1 style="margin: 0; padding: 0.3em 0 0 0">Andrew Kelley</h1>
+  <p>President and Lead Developer of <a href="https://ziglang.org/zsf">Zig Software Foundation</a>. Jack of all trades, master of one.</p>
+  <p>
+  <a href="mailto:andrew@ziglang.org">Email</a> |
+  <a href="/rss.xml">RSS</a>
+  </p>
+</div>
+
+<div style="clear:both; float:left; padding: 1em">
 <h2>Posts</h2>
 <ul>
   {% for post in posts %}
   <li>{{ post.date | date("Y M d") }} - <a href="post/{{ post.filename }}">{{ post.title }}</a></li>
   {% endfor %}
 </ul>
+</div>
+
+<div style="float: left; max-width: 34em">
 <h2>Projects</h2>
 <ul>
   <li>
@@ -40,8 +97,8 @@
   </li>
 </ul>
 <h2>Game Jams</h2>
-<div>
-  <a href="https://s3.amazonaws.com/superjoe/temp/face-the-music/index.html">
+<div class="jam">
+  <a class="thumbnail" href="https://s3.amazonaws.com/superjoe/temp/face-the-music/index.html">
     <img src="https://s3.amazonaws.com/superjoe/blog-files/face-the-music-title-small.png">
   </a>
   <div>
@@ -53,8 +110,8 @@
     </p>
   </div>
 </div>
-<div>
-  <a href="https://s3.amazonaws.com/superjoe/temp/purgatory/index.html">
+<div class="jam">
+  <a class="thumbnail" href="https://s3.amazonaws.com/superjoe/temp/purgatory/index.html">
     <img src="https://s3.amazonaws.com/superjoe/blog-files/purgatory-title-small.png">
   </a>
   <div>
@@ -66,8 +123,8 @@
     </p>
   </div>
 </div>
-<div>
-  <a href="https://s3.amazonaws.com/superjoe/temp/pillagers/index.html">
+<div class="jam">
+  <a class="thumbnail" href="https://s3.amazonaws.com/superjoe/temp/pillagers/index.html">
     <img src="https://s3.amazonaws.com/superjoe/blog-files/pillagers-title-small.png">
   </a>
   <div>
@@ -80,8 +137,8 @@
     </p>
   </div>
 </div>
-<div>
-  <a href="https://s3.amazonaws.com/superjoe/temp/dr-chemicals-lab/index.html">
+<div class="jam">
+  <a class="thumbnail" href="https://s3.amazonaws.com/superjoe/temp/dr-chemicals-lab/index.html">
     <img src="https://s3.amazonaws.com/superjoe/blog-files/dr-chemicals-lab-title-small.png">
   </a>
   <div>
@@ -93,8 +150,8 @@
     </p>
   </div>
 </div>
-<div>
-  <a href="https://s3.amazonaws.com/superjoe/temp/lemming/index.html">
+<div class="jam">
+  <a class="thumbnail" href="https://s3.amazonaws.com/superjoe/temp/lemming/index.html">
     <img src="https://s3.amazonaws.com/superjoe/blog-files/lemming-title-small.png">
   </a>
   <div>
@@ -108,8 +165,8 @@
     </p>
   </div>
 </div>
-<div>
-  <a href="https://github.com/andrewrk/planetarius">
+<div class="jam">
+  <a class="thumbnail" href="https://github.com/andrewrk/planetarius">
     <img src="https://s3.amazonaws.com/superjoe/blog-files/planetarius-title-small.png">
   </a>
   <div>
@@ -119,6 +176,7 @@
     You can check out the
     <a href="https://github.com/andrewrk/planetarius">source</a>.
     </p>
+  </div>
   </div>
 </div>
 {% endblock %}
