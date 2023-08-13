@@ -210,7 +210,7 @@ const Parse = struct {
         return ident;
     }
 
-    fn eatExpr(parse: *Parse) Error!Ast.Node {
+    fn eatExpr(parse: *Parse) Error!?Ast.Node {
         if (!parse.eatBytes("{{")) return null;
         parse.skipWhiteSpace();
         const expr = try parse.expectExpr();
@@ -242,6 +242,10 @@ const Parse = struct {
                 ' ' => {
                     const ident = parse.source[start_index..parse.index];
                     parse.skipWhiteSpace();
+                    return ident;
+                },
+                '.', '|', '}' => {
+                    const ident = parse.source[start_index..parse.index];
                     return ident;
                 },
                 else => return parse.fail("expected letter or space", .{}),
@@ -296,13 +300,22 @@ const Parse = struct {
     }
 
     fn expectExpr(p: *Parse) Error!Ast.Node {
-        while (p.index < p.source.len) : (p.index += 1) {
-            switch (p.source[p.index]) {
-                '.' => {},
-                '}', ' ' => {},
-                '|' => {},
-                else => |c| return p.fail("unexpected byte: '{c}'", .{c}),
-            }
+        const ident_name = try p.expectIdentifier();
+        p.skipWhiteSpace();
+        switch (p.source[p.index]) {
+            '.' => {
+                p.skipForward(1);
+                const field_name = try p.expectIdentifier();
+                const ident_node = try p.arena.create(Ast.Node);
+                ident_node.* = .{ .ident = ident_name };
+                return .{ .field_access = .{
+                    .lhs = ident_node,
+                    .name = field_name,
+                } };
+            },
+            '|' => @panic("TODO | expr"),
+            '}' => @panic("TODO end expr"),
+            else => |c| return p.fail("unexpected byte: '{c}'", .{c}),
         }
     }
 
@@ -350,6 +363,15 @@ const Parse = struct {
                 } else {
                     return parse.fail("unrecognized node name: '{s}'", .{node_ident});
                 }
+                continue;
+            } else if (try parse.eatExpr()) |expr_node| {
+                if (opt_text_start) |text_start| {
+                    try inside.append(parse.arena, .{
+                        .content = parse.source[text_start..node_start_index],
+                    });
+                    opt_text_start = null;
+                }
+                try inside.append(parse.arena, expr_node);
                 continue;
             }
 
@@ -509,6 +531,9 @@ fn debugPrintNode(node: Ast.Node, indent: usize) std.fs.File.WriteError!void {
         .filter => |filter| {
             try w.print("filter | {s}('{s}')\n", .{ filter.name, filter.arg });
             try debugPrintNode(filter.lhs.*, indent + 1);
+        },
+        .ident => |ident| {
+            try w.print("ident '{s}'\n", .{ident});
         },
     }
 }
