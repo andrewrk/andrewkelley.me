@@ -3,52 +3,11 @@
   <head>
     <meta charset="utf-8">
     <title>{% block title %}Andrew Kelley{% endblock %}</title>
-    <link href="https://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.no-icons.min.css" rel="stylesheet">
-    <link href="https://netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://s3.amazonaws.com/superjoe/blog-files/prism.css"/>
     <link rel="alternate" type="application/rss+xml" title="RSS" href="/rss.xml">
-    <style>
-      .profile {
-        text-align: center;
-      }
-      .profile ul {
-        text-align: left;
-        list-style: none;
-        margin-top: 10px;
-      }
-      .profile li a {
-        padding-left: 6px;
-        color: #333333;
-      }
-      .profile a {
-        color: #333333;
-      }
-      .profile h4 a:hover {
-        text-decoration: none;
-      }
-    </style>
+    <link type=text/css rel=stylesheet href="/style.css">
     {% block head %}{% endblock %}
   </head>
   <body>
-    <div class="row">
-      <div class="span2 profile">
-        <h4><a href="/">Andrew Kelley</a></h4>
-        <a href="/">
-        <img alt="" src="https://superjoe.s3.amazonaws.com/blog-files/profile-nice2.jpg" style="width: 112px" />
-        </a>
-        <ul>
-          <li><i class="icon-rss-sign"></i><a href="/rss.xml">RSS Feed</a></li>
-          <li><i class="icon-github-sign"></i><a href="https://github.com/andrewrk">GitHub</a></li>
-          <li><i class="icon-twitter-sign"></i><a href="https://twitter.com/andy_kelley">Twitter</a></li>
-          <li><i class="icon-envelope-alt"></i><a href="mailto:andrew@ziglang.org">Email</a></li>
-        </ul>
-        <a href="https://ziglang.org/"><img src="https://ziglang.org/zig-logo.svg"></a>
-        <p>programming language</p>
-        <a href="https://github.com/users/andrewrk/sponsorship">Sponsor @ $5/month</a>
-      </div>
-      <div class="span7">
-        {% block content %}{% endblock %}
-      </div>
-    </div>
+    {% block content %}{% endblock %}
   </body>
 </html>

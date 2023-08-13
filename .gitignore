@@ -2,4 +2,5 @@
 /www/donate/index.html
 /www/post
 /www/rss.xml
-/node_modules
+/www/img/
+zig-cache/
