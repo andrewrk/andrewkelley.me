@@ -81,6 +81,12 @@ fn renderMap(
     var bw = std.io.bufferedWriter(out_file.writer());
     const w = bw.writer();
 
+    var context: RenderContext = .{
+        .arena = arena,
+        .captures = .{},
+        .auto_escape = true,
+    };
+
     switch (root_nodes[0]) {
         .extends => |filename| {
             var base_ast = try swig.compile(filename);
@@ -113,16 +119,10 @@ fn renderMap(
             };
 
             // Iterate over the base view again, this time writing to the output.
-            var context: RenderContext = .{
-                .arena = arena,
-                .captures = .{},
-                .auto_escape = true,
-            };
             try renderBody(w, &context, base_nodes, &.{}, map);
         },
         else => {
-            std.debug.print("expected an 'extends' node", .{});
-            return error.RenderFail;
+            try renderBody(w, &context, root_nodes, &.{}, map);
         },
     }
 
@@ -188,7 +188,7 @@ fn renderBody(
             try renderValue(w, v);
         },
         .field_access => |field_access| {
-            const v = try fieldAccess(field_access.lhs.*, field_access.name, map, &context.captures);
+            const v = try fieldAccess(context, field_access, map);
             try renderValue(w, v);
         },
         .filter => |f| {
@@ -215,7 +215,7 @@ fn renderValue(w: anytype, v: Value) !void {
 fn evalFilter(context: *RenderContext, filter: Ast.Filter, map: Map) !Value {
     const v = switch (filter.lhs.*) {
         .ident => |ident_name| try identifier(ident_name, map, &context.captures),
-        .field_access => |fa| try fieldAccess(fa.lhs.*, fa.name, map, &context.captures),
+        .field_access => |fa| try fieldAccess(context, fa, map),
         .filter => |f| try evalFilter(context, f, map),
         else => {
             std.debug.print("field access of '{s}' node\n", .{@tagName(filter.lhs.*)});
@@ -224,6 +224,10 @@ fn evalFilter(context: *RenderContext, filter: Ast.Filter, map: Map) !Value {
     };
     if (mem.eql(u8, filter.name, "date")) {
         return evalFilterDate(context.arena, v, filter.arg);
+    } else if (mem.eql(u8, filter.name, "cdata")) {
+        return evalFilterCdata(context.arena, v, filter.arg);
+    } else if (mem.eql(u8, filter.name, "first")) {
+        return evalFilterFirst(v, filter.arg);
     } else {
         std.debug.print("unrecognized filter name: '{s}'\n", .{filter.name});
         return error.RenderFail;
@@ -231,12 +235,6 @@ fn evalFilter(context: *RenderContext, filter: Ast.Filter, map: Map) !Value {
 }
 
 fn evalFilterDate(arena: Allocator, v: Value, arg: []const u8) !Value {
-    if (!mem.eql(u8, "Y M d", arg)) {
-        std.debug.print("only the date filter 'Y M d' is supported currently (found '{s}')\n", .{
-            arg,
-        });
-        return error.RenderFail;
-    }
     const s = switch (v) {
         .string => |s| s,
         else => {
@@ -244,20 +242,126 @@ fn evalFilterDate(arena: Allocator, v: Value, arg: []const u8) !Value {
             return error.RenderFail;
         },
     };
-    const year = s[0..4];
-    const month = s[5..][0..2];
-    const day = s[8..][0..2];
-    const months = [_][]const u8{
+    const year_text = s[0..4];
+    const year = std.fmt.parseInt(u16, year_text, 10) catch {
+        std.debug.print("bad year: {s}\n", .{year_text});
+        return error.RenderFail;
+    };
+    const month_text = s[5..][0..2];
+    const month_1 = std.fmt.parseInt(u8, month_text, 10) catch {
+        std.debug.print("bad month: {s}\n", .{month_text});
+        return error.RenderFail;
+    };
+    if (month_1 < 1 or month_1 > 12) {
+        std.debug.print("bad month (out of range): {s}\n", .{month_text});
+        return error.RenderFail;
+    }
+    const month = month_1 - 1;
+    const day_text = s[8..][0..2];
+    const day = std.fmt.parseInt(u8, day_text, 10) catch {
+        std.debug.print("bad day: {s}\n", .{day_text});
+        return error.RenderFail;
+    } - 1;
+    const month_abbr = [_][]const u8{
         "Jan", "Feb", "Mar", "Apr", "May", "Jun",
         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     };
-    const month_int = std.fmt.parseInt(u8, month, 10) catch {
-        std.debug.print("bad month integer: {s}\n", .{month});
+
+    const hour_text = s[11..][0..2];
+    const minute_text = s[14..][0..2];
+    const second_text = s[17..][0..2];
+
+    const hour = std.fmt.parseInt(u8, hour_text, 10) catch {
+        std.debug.print("bad hour: {s}\n", .{hour_text});
         return error.RenderFail;
     };
-    return .{ .string = try std.fmt.allocPrint(arena, "{s} {s} {s}", .{
-        year, months[month_int - 1], day,
-    }) };
+
+    const minute = std.fmt.parseInt(u8, minute_text, 10) catch {
+        std.debug.print("bad minute: {s}\n", .{minute_text});
+        return error.RenderFail;
+    };
+
+    const second = std.fmt.parseInt(u8, second_text, 10) catch {
+        std.debug.print("bad second: {s}\n", .{second_text});
+        return error.RenderFail;
+    };
+
+    var buffer = std.ArrayList(u8).init(arena);
+
+    for (arg) |b| {
+        switch (b) {
+            'D' => try buffer.appendSlice(@tagName(WeekDay.from_ymd(year, month, day))),
+            'd' => try buffer.writer().print("{d:0>2}", .{day + 1}),
+            'm' => try buffer.writer().print("{d:0>2}", .{month + 1}),
+            'M' => try buffer.appendSlice(month_abbr[month]),
+            'Y' => try buffer.writer().print("{d:0>4}", .{year}),
+            'H' => try buffer.writer().print("{d:0>2}", .{hour}),
+            'i' => try buffer.writer().print("{d:0>2}", .{minute}),
+            's' => try buffer.writer().print("{d:0>2}", .{second}),
+            'Z' => try buffer.appendSlice("GMT"),
+            else => try buffer.append(b),
+        }
+    }
+
+    return .{ .string = buffer.items };
+}
+
+const WeekDay = enum {
+    Sun,
+    Mon,
+    Tue,
+    Wed,
+    Thu,
+    Fri,
+    Sat,
+
+    fn from_ymd(year: u32, m: u32, d: u32) WeekDay {
+        return from_ymd1(year, m + 1, d + 1);
+    }
+    fn from_ymd1(year: u32, m: u32, d: u32) WeekDay {
+        const t = [_]u32{ 0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4 };
+        const y = year - @intFromBool(m < 3);
+        return @enumFromInt((y + y / 4 - y / 100 + y / 400 + t[m - 1] + d) % 7);
+    }
+};
+
+fn evalFilterCdata(arena: Allocator, v: Value, arg: []const u8) !Value {
+    if (!mem.eql(u8, "", arg)) {
+        std.debug.print("only the cdata filter '' is supported currently (found '{s}')\n", .{
+            arg,
+        });
+        return error.RenderFail;
+    }
+    const s = switch (v) {
+        .string => |s| s,
+        else => {
+            std.debug.print("cdata filter on non-string value '{s}'\n", .{@tagName(v)});
+            return error.RenderFail;
+        },
+    };
+
+    // To escape a CDATA end sequence you have to do this replacement:
+    const escaped = try mem.replaceOwned(u8, arena, s, "]]>", "]]]]><![CDATA[>");
+
+    return .{ .string = escaped };
+}
+
+fn evalFilterFirst(v: Value, arg: []const u8) !Value {
+    if (!mem.eql(u8, "", arg)) {
+        std.debug.print("only the first filter '' is supported currently (found '{s}')\n", .{
+            arg,
+        });
+        return error.RenderFail;
+    }
+    const list = switch (v) {
+        .list => |list| list,
+        else => {
+            std.debug.print("first filter on non-list value '{s}'\n", .{@tagName(v)});
+            return error.RenderFail;
+        },
+    };
+
+    return list[0];
 }
 
 fn identifier(name: []const u8, map: Map, captures: *Map) !Value {
@@ -268,24 +372,24 @@ fn identifier(name: []const u8, map: Map, captures: *Map) !Value {
 }
 
 fn fieldAccess(
-    lhs: Ast.Node,
-    name: []const u8,
+    context: *RenderContext,
+    field_access: Ast.FieldAccess,
     map: Map,
-    captures: *Map,
-) !Value {
-    const aggregate = switch (lhs) {
-        .ident => |ident_name| try identifier(ident_name, map, captures),
-        .field_access => |fa| try fieldAccess(fa.lhs.*, fa.name, map, captures),
+) error{ RenderFail, OutOfMemory }!Value {
+    const aggregate = switch (field_access.lhs.*) {
+        .ident => |ident_name| try identifier(ident_name, map, &context.captures),
+        .field_access => |fa| try fieldAccess(context, fa, map),
+        .filter => |f| try evalFilter(context, f, map),
         else => {
-            std.debug.print("field access of '{s}' node\n", .{@tagName(lhs)});
+            std.debug.print("field access of '{s}' node\n", .{@tagName(field_access.lhs.*)});
             return error.RenderFail;
         },
     };
 
     switch (aggregate) {
         .map => |sub_map| {
-            return sub_map.get(name) orelse {
-                std.debug.print("map has no field named '{s}'\n", .{name});
+            return sub_map.get(field_access.name) orelse {
+                std.debug.print("map has no field named '{s}'\n", .{field_access.name});
                 return error.RenderFail;
             };
         },
@@ -420,7 +524,7 @@ const Parse = struct {
         const start_index = parse.index;
         while (parse.index < parse.source.len) : (parse.index += 1) {
             switch (parse.source[parse.index]) {
-                'a'...'z' => {
+                'a'...'z', '_' => {
                     parse.column += 1;
                 },
                 ' ' => {

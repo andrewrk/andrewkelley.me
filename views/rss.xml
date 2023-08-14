@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+   <channel>
+      <title>Andrew Kelley</title>
+      <link>https://andrewkelley.me/</link>
+      <description>My personal website - thoughts, project demos, research.</description>
+      <language>en-us</language>
+      <lastBuildDate>{{ posts | first("") .date | date("D, d M Y H:i:s Z") }}</lastBuildDate>
+      <docs>https://www.rssboard.org/rss-specification</docs>
+      <webMaster>andrew@ziglang.org (Andrew Kelley)</webMaster>
+      <atom:link href="https://andrewkelley.me/rss.xml" rel="self" type="application/rss+xml" />
+
+      <image>
+        <url>https://andrewkelley.me/img/profile-flowers.jpg</url>
+        <title>Andrew Kelley</title>
+        <link>https://andrewkelley.me/</link>
+      </image>
+
+      {% for post in posts %}
+      <item>
+         <title>{{ post.title }}</title>
+         <pubDate>{{ post.date | date("D, d M Y H:i:s Z") }}</pubDate>
+
+         <link>https://andrewkelley.me/post/{{ post.filename }}</link>
+         <guid>https://andrewkelley.me/post/{{ post.filename }}</guid>
+         <description><![CDATA[{{ post.content | cdata("") }}]]></description>
+      </item>
+      {% endfor %}
+   </channel>
+</rss>
