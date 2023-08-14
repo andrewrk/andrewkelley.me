@@ -14,7 +14,7 @@ pub fn build(b: *std.Build) void {
         "-P",
         "--no-preserve",
         "--no-mime-magic",
-        "--add-header=\"Cache-Control: max-age=0, must-revalidate\"",
+        "--add-header=Cache-Control: max-age=0, must-revalidate",
         "www/",
         "s3://andrewkelley.me/",
     });
