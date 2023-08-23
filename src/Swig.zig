@@ -291,7 +291,7 @@ fn evalFilterDate(arena: Allocator, v: Value, arg: []const u8) !Value {
     for (arg) |b| {
         switch (b) {
             'D' => try buffer.appendSlice(@tagName(WeekDay.from_ymd(year, month, day))),
-            'd' => try buffer.writer().print("{d:0>2}", .{day + 1}),
+            'd' => try buffer.writer().print("{d:0>2}", .{day}),
             'm' => try buffer.writer().print("{d:0>2}", .{month + 1}),
             'M' => try buffer.appendSlice(month_abbr[month]),
             'Y' => try buffer.writer().print("{d:0>4}", .{year}),
@@ -316,7 +316,7 @@ const WeekDay = enum {
     Sat,
 
     fn from_ymd(year: u32, m: u32, d: u32) WeekDay {
-        return from_ymd1(year, m + 1, d + 1);
+        return from_ymd1(year, m + 1, d);
     }
     fn from_ymd1(year: u32, m: u32, d: u32) WeekDay {
         const t = [_]u32{ 0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4 };
