@@ -15,6 +15,11 @@ const Post = struct {
 
 var post_list = [_]Post{
     .{
+        .filename = "goodbye-twitter-reddit.html",
+        .date = "2023-08-23T22:05:07.312Z",
+        .title = "So Long, Twitter and Reddit",
+    },
+    .{
         .filename = "zig-cc-powerful-drop-in-replacement-gcc-clang.html",
         .date = "2020-03-24T14:39:47.141Z",
         .title = "`zig cc`: a Powerful Drop-In Replacement for GCC/Clang",
