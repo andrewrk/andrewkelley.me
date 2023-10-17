@@ -15,6 +15,11 @@ const Post = struct {
 
 var post_list = [_]Post{
     .{
+        .filename = "the-techno-optimist-manifesto.html",
+        .date = "2023-10-17T20:14:51.697Z",
+        .title = "The Techno-Optimist Manifesto",
+    },
+    .{
         .filename = "goodbye-twitter-reddit.html",
         .date = "2023-08-23T22:05:07.312Z",
         .title = "So Long, Twitter and Reddit",
