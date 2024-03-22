@@ -16,6 +16,9 @@ pre {
 .diff1 {
   color: #009900;
 }
+.dark {
+  display: none;
+}
 
 @media (prefers-color-scheme: dark) {
   body {
@@ -46,5 +49,11 @@ pre {
   img.bright {
     background-color: white;
     border: 4px solid #3c3c3c;
+  }
+  .dark {
+    display: unset;
+  }
+  .light {
+    display: none;
   }
 }

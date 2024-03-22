@@ -15,6 +15,11 @@ const Post = struct {
 
 var post_list = [_]Post{
     .{
+        .filename = "redis-renamed-to-redict.html",
+        .date = "2024-03-22T20:32:03.161Z",
+        .title = "Redis Renamed to Redict",
+    },
+    .{
         .filename = "why-we-cant-have-nice-software.html",
         .date = "2024-02-04T23:11:21.087Z",
         .title = "Why We Can't Have Nice Software",
