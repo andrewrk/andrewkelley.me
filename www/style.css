@@ -9,6 +9,7 @@ pre {
   background-color: #eee;
   border: 1px solid #3a3a3a;
   padding: 0.5em;
+  line-height: 1.4em;
 }
 .diff0 {
   color: #990000;
