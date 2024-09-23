@@ -21,8 +21,8 @@ pub fn render(
     const arena = arena_instance.allocator();
 
     var map: Map = .{};
-    try map.ensureUnusedCapacity(arena, @typeInfo(@TypeOf(args)).Struct.fields.len);
-    inline for (@typeInfo(@TypeOf(args)).Struct.fields) |field| {
+    try map.ensureUnusedCapacity(arena, @typeInfo(@TypeOf(args)).@"struct".fields.len);
+    inline for (@typeInfo(@TypeOf(args)).@"struct".fields) |field| {
         map.putAssumeCapacityNoClobber(field.name, try toValue(arena, @field(args, field.name)));
     }
     return renderMap(swig, arena, out_dir, out_path, view_filename, map);
@@ -34,7 +34,7 @@ fn toValue(arena: Allocator, arg: anytype) Allocator.Error!Value {
         else => {},
     }
     switch (@typeInfo(@TypeOf(arg))) {
-        .Struct => |s| {
+        .@"struct" => |s| {
             var map: Map = .{};
             try map.ensureUnusedCapacity(arena, s.fields.len);
             inline for (s.fields) |field| {
@@ -42,8 +42,8 @@ fn toValue(arena: Allocator, arg: anytype) Allocator.Error!Value {
             }
             return .{ .map = map };
         },
-        .Pointer => @compileError("TODO pointer type erasure: " ++ @typeName(@TypeOf(arg))),
-        .Array => |a| {
+        .pointer => @compileError("TODO pointer type erasure: " ++ @typeName(@TypeOf(arg))),
+        .array => |a| {
             const list = try arena.alloc(Value, a.len);
             for (list, arg) |*dest, src| {
                 dest.* = try toValue(arena, src);
