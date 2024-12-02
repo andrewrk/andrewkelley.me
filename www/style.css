@@ -37,10 +37,6 @@ pre {
     border: 1px solid gray;
     padding: 0.5em;
   }
-  code {
-    background-color: #1e1e1e;
-    padding: 0.25em;
-  }
   .diff0 {
     color: #ff613c;
   }
