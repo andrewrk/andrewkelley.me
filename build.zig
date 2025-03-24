@@ -4,7 +4,7 @@ pub fn build(b: *std.Build) void {
     const compile_exe = b.addExecutable(.{
         .name = "compile",
         .root_source_file = b.path("src/main.zig"),
-        .target = b.host,
+        .target = b.graph.host,
     });
     const run_cmd = b.addRunArtifact(compile_exe);
     b.getInstallStep().dependOn(&run_cmd.step);

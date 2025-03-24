@@ -32,12 +32,22 @@ li {
 .jam {
   clear:both;
 }
+.popular {
+  background-color: #e66c00;
+  color: white;
+  border-radius: 1em;
+  padding: 0.2em;
+}
 @media (prefers-color-scheme: dark) {
   .dark {
     display: block;
   }
   .light {
     display: none;
+  }
+  .popular {
+    background-color: #ec903f;
+    color: black;
   }
 }
 </style>
@@ -58,7 +68,7 @@ li {
 </div>
 
 <div style="clear:both; float:left; padding: 1em">
-<h2>Posts</h2>
+<h2>Blog Posts</h2>
 <ul>
   {% for post in posts %}
   <li>{{ post.date | date("Y M d") }} - <a href="post/{{ post.filename }}">{{ post.title }}</a></li>
@@ -66,38 +76,31 @@ li {
 </ul>
 </div>
 
-<div style="float: left; max-width: 34em">
+<div style="float: left; max-width: 42em">
 <h2>Projects</h2>
 <ul>
   <li>
   <a href="http://ziglang.org/">Zig</a> - a general-purpose programming language and toolchain for maintaining robust, optimal and reusable software.
   </li>
   <li>
-  <a href="http://genesisdaw.org/">Genesis</a> - peer-to-peer collaborative digital audio workstation.
-  </li>
-  <li>
-  <a href="http://libsound.io/">libsoundio</a> - C library providing cross-platform audio input and output for real-time and consumer software.
-  </li>
-  <li>
-  <a href="https://github.com/andrewrk/groovebasin">Groove Basin</a> - Music player server with a web-based user interface.
-  </li>
-  <li>
-  <a href="https://github.com/andrewrk/libgroove/">libgroove</a> - Audio dispatching library. Music player backend.
-  </li>
-  <li>
-  <a href="https://github.com/andrewrk/naught">naught</a> -
-  zero downtime deployment for your Node.js server using native cluster api
-  </li>
-  <li>
-  <a href="https://github.com/andrewrk/mineflayer/">mineflayer</a> - Create Minecraft bots with a powerful, stable, and high level JavaScript API.
-  </li>
-  <li>
-  <a href="https://github.com/andrewrk/waveform">waveform</a> - Command line tool written in C to perform transcoding and waveform generation.
-  </li>
-  <li>
-  <a href="https://github.com/andrewrk/chem">chem</a> - canvas-based 2D game engine and toolchain optimized for rapid development.
+  <a href="https://codeberg.org/andrewrk/groovebasin">Groove Basin</a> - music player server with a web-based user interface.
   </li>
 </ul>
+
+<h2>Talks</h2>
+<ul>
+  <li>2018-03-20 - <a href="https://www.youtube.com/watch?v=Z4oYSByyRak">Software Should Be Perfect</a></li>
+  <li>2019-05-09 - <a href="https://www.youtube.com/watch?v=Gv2I7qTux7g">Zig: a programming language for maintaining robust, reusable software</a></li>
+  <li>2021-11-23 - <a href="https://vimeo.com/649009599">A Practical Guide to Applying Data-Oriented Design</a> <span class="popular">Popular!</span></li>
+  <li>2022-10-03 - <a href="https://www.youtube.com/watch?v=YXrb-DqsBNU">Introduction to Zig</a></li>
+  <li>2022-10-17 - <a href="https://www.youtube.com/watch?v=stChOsejLEQ">Stay Together For The Kids (Why System Package Managers and Language Package Managers Struggle to Cooperate)</a></li>
+  <li>2023-04-07 - <a href="https://youtu.be/Qncdi-Fg0-I?t=523">Making Systems Programming Accessible</a></li>
+  <li>2023-09-14 - <a href="https://www.youtube.com/watch?v=wFlyUzUVFhw">How to Build Software From Source</a></li>
+  <li>2024-08-12 - <a href="https://youtu.be/SCLrNqc9jdE?t=45">A Systems-Minded Approach to Creating a Music Player Application</a></li>
+  <li>2024-11-23 - <a href="https://youtu.be/zYAif5PhhoQ?t=7129">In Defense of the Free Software Movement</a></li>
+  <li>upcoming - <a href="https://systemsdistributed.com">Systems Distributed '25</a></li>
+</ul>
+
 <h2>Game Jams</h2>
 <div class="jam">
   <a class="thumbnail" href="https://s3.amazonaws.com/superjoe/temp/face-the-music/index.html">
