@@ -4,6 +4,7 @@ const fs = std.fs;
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
 const Swig = @This();
+const Writer = std.Io.Writer;
 
 gpa: Allocator,
 views_dir: fs.Dir,
@@ -78,8 +79,9 @@ fn renderMap(
     var out_file = try out_dir.createFile(out_path, .{});
     defer out_file.close();
 
-    var bw = std.io.bufferedWriter(out_file.writer());
-    const w = bw.writer();
+    var buffer: [1024]u8 = undefined;
+    var file_writer = out_file.writer(&buffer);
+    const w = &file_writer.interface;
 
     var context: RenderContext = .{
         .arena = arena,
@@ -126,7 +128,7 @@ fn renderMap(
         },
     }
 
-    try bw.flush();
+    try w.flush();
 }
 
 const RenderContext = struct {
@@ -136,12 +138,12 @@ const RenderContext = struct {
 };
 
 fn renderBody(
-    w: anytype,
+    w: *Writer,
     context: *RenderContext,
     body: []Ast.Node,
     parent_body: []Ast.Node,
     map: Map,
-) (@TypeOf(w).Error || error{ RenderFail, OutOfMemory })!void {
+) error{ WriteFailed, RenderFail, OutOfMemory }!void {
     for (body) |node| switch (node) {
         .extends => unreachable,
         .block => |block| {
@@ -158,9 +160,9 @@ fn renderBody(
                 context.captures.get(for_loop.collection_name) orelse
                 map.get(for_loop.collection_name) orelse
                 {
-                std.debug.print("no parameter named '{s}'\n", .{for_loop.collection_name});
-                return error.RenderFail;
-            };
+                    std.debug.print("no parameter named '{s}'\n", .{for_loop.collection_name});
+                    return error.RenderFail;
+                };
             const slice = switch (value) {
                 .list => |slice| slice,
                 else => {
@@ -198,7 +200,7 @@ fn renderBody(
     };
 }
 
-fn renderValue(w: anytype, v: Value) !void {
+fn renderValue(w: *Writer, v: Value) !void {
     switch (v) {
         .string => |s| try w.writeAll(s),
         .list => {
