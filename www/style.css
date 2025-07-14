@@ -9,7 +9,7 @@ pre {
   background-color: #eee;
   border: 1px solid #3a3a3a;
   padding: 0.5em;
-  line-height: 1.7em;
+  line-height: 1.4em;
 }
 .diff0 {
   color: #990000;
@@ -35,11 +35,9 @@ pre {
   pre {
     background-color: #1e1e1e;
     border: 1px solid gray;
-    padding: 0.5em;
   }
   code {
     background-color: #1e1e1e;
-    padding: 0.25em;
   }
   .diff0 {
     color: #ff613c;
