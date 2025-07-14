@@ -15,6 +15,11 @@ const Post = struct {
 
 var post_list = [_]Post{
     .{
+        .filename = "openzfs-bug-ported-zig.html",
+        .date = "2025-07-14T18:31:28.263Z",
+        .title = "OpenZFS Bug Ported to Zig",
+    },
+    .{
         .filename = "zig-new-cli-progress-bar-explained.html",
         .date = "2024-05-30T03:27:38.619Z",
         .title = "Zig's New CLI Progress Bar Explained",
