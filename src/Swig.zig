@@ -288,20 +288,20 @@ fn evalFilterDate(arena: Allocator, v: Value, arg: []const u8) !Value {
         return error.RenderFail;
     };
 
-    var buffer = std.ArrayList(u8).init(arena);
+    var buffer: std.ArrayList(u8) = .empty;
 
     for (arg) |b| {
         switch (b) {
-            'D' => try buffer.appendSlice(@tagName(WeekDay.from_ymd(year, month, day))),
-            'd' => try buffer.writer().print("{d:0>2}", .{day}),
-            'm' => try buffer.writer().print("{d:0>2}", .{month + 1}),
-            'M' => try buffer.appendSlice(month_abbr[month]),
-            'Y' => try buffer.writer().print("{d:0>4}", .{year}),
-            'H' => try buffer.writer().print("{d:0>2}", .{hour}),
-            'i' => try buffer.writer().print("{d:0>2}", .{minute}),
-            's' => try buffer.writer().print("{d:0>2}", .{second}),
-            'Z' => try buffer.appendSlice("GMT"),
-            else => try buffer.append(b),
+            'D' => try buffer.appendSlice(arena, @tagName(WeekDay.from_ymd(year, month, day))),
+            'd' => try buffer.print(arena, "{d:0>2}", .{day}),
+            'm' => try buffer.print(arena, "{d:0>2}", .{month + 1}),
+            'M' => try buffer.appendSlice(arena, month_abbr[month]),
+            'Y' => try buffer.print(arena, "{d:0>4}", .{year}),
+            'H' => try buffer.print(arena, "{d:0>2}", .{hour}),
+            'i' => try buffer.print(arena, "{d:0>2}", .{minute}),
+            's' => try buffer.print(arena, "{d:0>2}", .{second}),
+            'Z' => try buffer.appendSlice(arena, "GMT"),
+            else => try buffer.append(arena, b),
         }
     }
 
