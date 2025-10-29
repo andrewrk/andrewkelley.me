@@ -8,7 +8,7 @@ const Writer = std.Io.Writer;
 
 gpa: Allocator,
 views_dir: fs.Dir,
-max_size: usize = 10 * 1024 * 1024,
+max_size: std.Io.Limit = .limited(10 * 1024 * 1024),
 
 pub fn render(
     swig: *Swig,
@@ -771,7 +771,7 @@ fn compile(swig: *Swig, view_filename: []const u8) !Ast {
     errdefer arena_instance.deinit();
     const arena = arena_instance.allocator();
 
-    const view_source = try swig.views_dir.readFileAlloc(arena, view_filename, swig.max_size);
+    const view_source = try swig.views_dir.readFileAlloc(view_filename, arena, swig.max_size);
 
     var parse: Parse = .{
         .gpa = swig.gpa,

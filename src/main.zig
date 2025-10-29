@@ -214,7 +214,7 @@ pub fn main() anyerror!void {
     defer views_dir.close();
 
     for (&post_list) |*post| {
-        post.content = try posts_dir.readFileAlloc(arena, post.filename, 10 * 1024 * 1024);
+        post.content = try posts_dir.readFileAlloc(post.filename, arena, .limited(10 * 1024 * 1024));
     }
 
     var swig = Swig{
