@@ -1,18 +1,20 @@
+const Swig = @This();
+
 const std = @import("std");
+const Io = std.Io;
 const mem = std.mem;
-const fs = std.fs;
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
-const Swig = @This();
 const Writer = std.Io.Writer;
 
 gpa: Allocator,
-views_dir: fs.Dir,
-max_size: std.Io.Limit = .limited(10 * 1024 * 1024),
+io: Io,
+views_dir: Io.Dir,
+max_size: Io.Limit = .limited(10 * 1024 * 1024),
 
 pub fn render(
     swig: *Swig,
-    out_dir: fs.Dir,
+    out_dir: Io.Dir,
     out_path: []const u8,
     view_filename: []const u8,
     args: anytype,
@@ -66,21 +68,23 @@ const Value = union(enum) {
 fn renderMap(
     swig: *Swig,
     arena: Allocator,
-    out_dir: fs.Dir,
+    out_dir: Io.Dir,
     out_path: []const u8,
     view_filename: []const u8,
     map: Map,
 ) !void {
+    const io = swig.io;
+
     var ast = try swig.compile(view_filename);
     defer ast.deinit(swig.gpa);
 
     const root_nodes = try ast.getRootNodesOrPrintError();
 
-    var out_file = try out_dir.createFile(out_path, .{});
-    defer out_file.close();
+    var out_file = try out_dir.createFile(io, out_path, .{});
+    defer out_file.close(io);
 
     var buffer: [1024]u8 = undefined;
-    var file_writer = out_file.writer(&buffer);
+    var file_writer = out_file.writer(io, &buffer);
     const w = &file_writer.interface;
 
     var context: RenderContext = .{
@@ -477,7 +481,7 @@ const Parse = struct {
     line: usize,
     column: usize,
     file_name: []const u8,
-    top_level: std.ArrayListUnmanaged(Ast.Node),
+    top_level: std.ArrayList(Ast.Node),
     fail_msg: []const u8,
 
     const Error = error{ OutOfMemory, ParseFail };
@@ -640,7 +644,7 @@ const Parse = struct {
     }
 
     fn expectContent(parse: *Parse) Error![]Ast.Node {
-        var inside: std.ArrayListUnmanaged(Ast.Node) = .{};
+        var inside: std.ArrayList(Ast.Node) = .empty;
         var opt_text_start: ?usize = null;
         while (parse.index < parse.source.len) {
             const node_start_index = parse.index;
@@ -767,11 +771,13 @@ const Parse = struct {
 };
 
 fn compile(swig: *Swig, view_filename: []const u8) !Ast {
+    const io = swig.io;
+
     var arena_instance = std.heap.ArenaAllocator.init(swig.gpa);
     errdefer arena_instance.deinit();
     const arena = arena_instance.allocator();
 
-    const view_source = try swig.views_dir.readFileAlloc(view_filename, arena, swig.max_size);
+    const view_source = try swig.views_dir.readFileAlloc(io, view_filename, arena, swig.max_size);
 
     var parse: Parse = .{
         .gpa = swig.gpa,
@@ -781,7 +787,7 @@ fn compile(swig: *Swig, view_filename: []const u8) !Ast {
         .line = 0,
         .column = 0,
         .index = 0,
-        .top_level = .{},
+        .top_level = .empty,
         .fail_msg = undefined,
     };
     defer parse.deinit();

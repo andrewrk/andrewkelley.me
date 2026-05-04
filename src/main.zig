@@ -1,10 +1,10 @@
 const std = @import("std");
-const path = std.fs.path;
-const fs = std.fs;
+const Io = std.Io;
 const fmt = std.fmt;
+const Allocator = std.mem.Allocator;
+
 const Swig = @import("./Swig.zig");
 const Rss = @import("./Rss.zig");
-const Allocator = std.mem.Allocator;
 
 const Post = struct {
     filename: []const u8,
@@ -201,29 +201,31 @@ var post_list = [_]Post{
     },
 };
 
-pub fn main() anyerror!void {
-    var arena_instance = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena_instance.deinit();
-    const arena = arena_instance.allocator();
+pub fn main(init: std.process.Init) anyerror!void {
+    const arena = init.arena.allocator();
+    const io = init.io;
 
-    var build_dir = try fs.cwd().makeOpenPath("www", .{});
-    defer build_dir.close();
+    const cwd: Io.Dir = .cwd();
 
-    var build_post_dir = try build_dir.makeOpenPath("post", .{});
-    defer build_post_dir.close();
+    var build_dir = try cwd.createDirPathOpen(io, "www", .{});
+    defer build_dir.close(io);
 
-    var posts_dir = try fs.cwd().openDir("posts", .{});
-    defer posts_dir.close();
+    var build_post_dir_task = io.async(Io.Dir.createDirPathOpen, .{ build_dir, io, "post", .{} });
+    defer if (build_post_dir_task.cancel(io)) |d| d.close(io) else |_| {};
 
-    var views_dir = try fs.cwd().openDir("views", .{});
-    defer views_dir.close();
+    var posts_dir = try cwd.openDir(io, "posts", .{});
+    defer posts_dir.close(io);
+
+    var views_dir = try cwd.openDir(io, "views", .{});
+    defer views_dir.close(io);
 
     for (&post_list) |*post| {
-        post.content = try posts_dir.readFileAlloc(post.filename, arena, .limited(10 * 1024 * 1024));
+        post.content = try posts_dir.readFileAlloc(io, post.filename, arena, .limited(10 * 1024 * 1024));
     }
 
-    var swig = Swig{
+    var swig: Swig = .{
         .gpa = arena,
+        .io = io,
         .views_dir = views_dir,
     };
 
@@ -233,6 +235,8 @@ pub fn main() anyerror!void {
     });
     try swig.render(build_dir, "index.html", "home.html", .{ .posts = post_list });
     try swig.render(build_dir, "donate/index.html", "donate.html", .{});
+
+    const build_post_dir = try build_post_dir_task.await(io);
     for (post_list) |post| {
         try swig.render(build_post_dir, post.filename, "post.html", .{ .post = post });
     }
