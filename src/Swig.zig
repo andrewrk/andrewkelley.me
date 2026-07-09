@@ -23,10 +23,12 @@ pub fn render(
     errdefer arena_instance.deinit();
     const arena = arena_instance.allocator();
 
+    const field_names = @typeInfo(@TypeOf(args)).@"struct".field_names;
+
     var map: Map = .{};
-    try map.ensureUnusedCapacity(arena, @typeInfo(@TypeOf(args)).@"struct".fields.len);
-    inline for (@typeInfo(@TypeOf(args)).@"struct".fields) |field| {
-        map.putAssumeCapacityNoClobber(field.name, try toValue(arena, @field(args, field.name)));
+    try map.ensureUnusedCapacity(arena, field_names.len);
+    inline for (field_names) |field_name| {
+        map.putAssumeCapacityNoClobber(field_name, try toValue(arena, @field(args, field_name)));
     }
     return renderMap(swig, arena, out_dir, out_path, view_filename, map);
 }
@@ -39,9 +41,9 @@ fn toValue(arena: Allocator, arg: anytype) Allocator.Error!Value {
     switch (@typeInfo(@TypeOf(arg))) {
         .@"struct" => |s| {
             var map: Map = .{};
-            try map.ensureUnusedCapacity(arena, s.fields.len);
-            inline for (s.fields) |field| {
-                map.putAssumeCapacityNoClobber(field.name, try toValue(arena, @field(arg, field.name)));
+            try map.ensureUnusedCapacity(arena, s.field_names.len);
+            inline for (s.field_names) |field_name| {
+                map.putAssumeCapacityNoClobber(field_name, try toValue(arena, @field(arg, field_name)));
             }
             return .{ .map = map };
         },
