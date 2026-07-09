@@ -126,7 +126,7 @@ sleight of hand misdirects the reader away from the main way bugs are eliminated
 by dedicating engineering resources to it. You're not giving TigerBeetle nearly
 enough credit. Quite simply they put in the time to find and eliminate the bugs,
 they make an effort to maintain a healthy relationship with ZSF, and Bun did
-not do that.</p>
+neither of those things.</p>
 
 <p>The argument for shipping all the million lines of unreviewed code is that
 the test suite is good enough to catch everything. Then why are you saying you
@@ -139,15 +139,15 @@ of Bun's existence. It used to be enabled by default until we ran into too many
 LLVM bugs, all of which also affect Rust. We probably tried to tell you
 to try enabling it and you didn't listen. We have good advice, damn it!</p>
 
-<p>The post claims they were fuzzing their Zig code, while during our calls the
-whole Bun team told us that they were not fuzzing anything. This appears to be
-an outright fabrication.</p>
+<p>The post implies you were diligently fuzzing your Zig code, while during
+our calls the Bun team told us that they were not fuzzing anything.</p>
 
 <p>The blog post outlines a bunch of engineering work done to reduce binary
 size, to better make the case that "Bun is better in Rust". But all that engineering
-work had nothing to do with the rewrite. I think this is precisely why it took so long
-for the blog post to come out, you were doing the engineering work that you
-should have done in the Zig codebase since the beginning. We've been trying to
+work had nothing to do with the rewrite. I think this (specifically the "binary
+size" section of the blog post) is precisely why it took so long for the blog
+post to come out, you were doing the engineering work that you should have done
+in the Zig codebase since the beginning. We've been trying to
 warn you about your <code>comptime</code> abuse for years. We even made
 <a href="https://ziglang.org/download/0.15.1/release-notes.html#Web-Interface-and-Time-Report">this time report thing</a>
 specifically for projects that need to audit their use of <code>comptime</code>/<code>inline</code> usage and compile times.</p>
@@ -159,6 +159,10 @@ followed by 90ms for each subsequent edit with incremental compilation
 enabled. What are the corresponding measurements of Bun post-rewrite?</p>
 
 <h2>What Did We Learn Here Today?</h2>
+
+<p>The main issue here was the relationship breakdown, as I've outlined above,
+nothing to do with programming language features. Of course, I don't expect
+the blog post to admit that. Really, it was well played.</p>
 
 <p>Zooming out a bit, I want to make a few things clear.</p>
 
@@ -172,6 +176,16 @@ He gets to live out his productivity fantasy fever dream, he's probably already 
 minor tech celebrity status.</p>
 
 <p>Honestly, I think he did well for himself, and I don't wish him any ill will.</p>
+
+<p>I added this paragraph in an update to this blog post because it seems like
+people are having a hard time believing me when I say it's not personal, and
+that I actually accept Jarred for who he is, and actually perceive him as
+successful by his own standards, and in fact genuinely happy for him. It's the
+truth though. I accept people who are wildly different than me. I don't hold it
+against people to have different tastes than me. And I don't even hate my
+opponents in the world of business. If anything we have something in common,
+we're both playing the same game, albeit on opposite teams. We both love the
+game though.</p>
 
 <p>That said I'm happy that our business interests are no longer intertwined!
 As soon as the Internet stops arguing in public about whether the rewrite was
