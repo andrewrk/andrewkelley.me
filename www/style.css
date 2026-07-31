@@ -21,6 +21,11 @@ pre {
   display: none;
 }
 
+blockquote {
+  font-family: serif;
+  color: green;
+}
+
 @media (prefers-color-scheme: dark) {
   body {
     background-color: black;
@@ -54,5 +59,8 @@ pre {
   }
   .light {
     display: none;
+  }
+  blockquote {
+    color: lightgreen;
   }
 }

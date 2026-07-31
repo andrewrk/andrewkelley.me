@@ -15,6 +15,11 @@ const Post = struct {
 
 var post_list = [_]Post{
     .{
+        .filename = "dont-take-black-pill.html",
+        .date = "2026-07-31T17:59:33.077Z",
+        .title = "Don't Take the Black Pill (Text Adaptation)",
+    },
+    .{
         .filename = "my-thoughts-bun-rust-rewrite.html",
         .date = "2026-07-09T04:56:58.936Z",
         .title = "My Thoughts on the Bun Rust Rewrite",
