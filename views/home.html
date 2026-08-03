@@ -32,6 +32,10 @@ li {
 .jam {
   clear:both;
 }
+audio {
+  height: 1em;
+  margin-right: 1em;
+}
 .popular {
   background-color: #e66c00;
   color: white;
@@ -101,6 +105,28 @@ li {
   <li>2025-02-28 - <a href="https://www.hytradboi.com/2025/05c72e39-c07e-41bc-ac40-85e8308f2917-programming-without-pointers">Programming Without Pointers</a> <span class="popular">Short!</span></li>
   <li>2025-08-11 - <a href="https://www.youtube.com/watch?v=f30PceqQWko">Don't Forget To Flush</a></li>
   <li>2026-07-16 - <a href="https://www.youtube.com/watch?v=zLZwpH5lCD4">Don't Take The Black Pill</a></li>
+</ul>
+
+<h2>Music (FL Studio Era)</h2>
+<p>Back in my university days, I started learning how to make music with 
+<a href="https://www.image-line.com/">FL Studio</a>, and made my first foray into Free Software by contributing
+to <a href="https://lmms.io/">LMMS</a>. I am thankful to the <a href="https://ocremix.org/">OC Remix</a> and
+<a href="https://thasauce.net/">ThaSauce</a> communities for mentorship.
+Here is a small selection of songs that I think turned out pretty fun:</p>
+<ul>
+{% for song in flstudio_songs %}
+<li><audio controls preload="none" src="music/{{ song.filename }}"></audio><span title="{{ song.description }}">{{ song.title }}</span></li>
+{% endfor %}
+</ul>
+
+<h2>Music (Deluge Era)</h2>
+<p>After a 15 year hiatus, I purchased a
+<a href="https://synthstrom.com/product/deluge/">Synthstrom Deluge</a> and a red
+guitar, and rekindled my hobby. Been having a blast with this thing!</p>
+<ul>
+{% for song in deluge_songs %}
+<li><audio controls preload="none" src="music/{{ song.filename }}"></audio><span title="{{ song.description }}">{{ song.title }}</span></li>
+{% endfor %}
 </ul>
 
 <h2>Game Jams</h2>

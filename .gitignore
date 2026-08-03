@@ -3,4 +3,6 @@
 /www/post
 /www/rss.xml
 /www/img/
+/www/music/
+/www/prism.js
 .zig-cache/

@@ -211,6 +211,73 @@ var post_list = [_]Post{
     },
 };
 
+const Song = struct {
+    filename: []const u8,
+    title: []const u8,
+    description: []const u8,
+};
+
+const flstudio_songs = [_]Song{
+    .{
+        .filename = "being-alone.mp3",
+        .title = "Being Alone",
+        .description = "2010-05-07. 2-hour collaboration with starla for a ThaSauce competition. Love her voice and lyrics here.",
+    },
+    .{
+        .filename = "listen-to-my-synthesizer.mp3",
+        .title = "Listen to My Synthesizer",
+        .description = "2010-06-01. 2-hour composition back from when I was working on SolidComposer",
+    },
+    .{
+        .filename = "sand.mp3",
+        .title = "Sand",
+        .description = "~2010. My roommate composed the melody and I arranged and produced the track",
+    },
+    .{
+        .filename = "tribute-to-young-stroke-aka-young-muscle.mp3",
+        .title = "Tribute to Young Stroke AKA Young Muscle",
+        .description = "~2011. A pretend 'diss track' even though actually I love that guy and hope he's doing well",
+    },
+    .{
+        .filename = "im-computer.mp3",
+        .title = "I'm Computer",
+        .description = "~2011. 2-hour composition where the theme was 'computers'",
+    },
+    .{
+        .filename = "gerudo.mp3",
+        .title = "Gerudo",
+        .description = "~2011. Gerudo valley remix, recorded some electric guitar for this one",
+    },
+    .{
+        .filename = "lightning-storm.mp3",
+        .title = "Lightning Storm",
+        .description = "~2008. One of the first songs I made. Had no idea what I was doing, but I took a long sample of a lightning storm and ran with it.",
+    },
+};
+
+const deluge_songs = [_]Song{
+    .{
+        .filename = "practice.ogg",
+        .title = "Practice",
+        .description = "2026-06-06. This one is straight from the heart.",
+    },
+    .{
+        .filename = "dnb2.ogg",
+        .title = "dnb2",
+        .description = "2026-06-23. Second attempt at making drum n bass.",
+    },
+    .{
+        .filename = "propaganda.ogg",
+        .title = "Propaganda",
+        .description = "2026-06-29. Stayed up way too late and had fun with this one.",
+    },
+    .{
+        .filename = "alone.ogg",
+        .title = "Alone",
+        .description = "2026-07-21. Alice Deejay remix.",
+    },
+};
+
 pub fn main(init: std.process.Init) anyerror!void {
     const arena = init.arena.allocator();
     const io = init.io;
@@ -243,7 +310,11 @@ pub fn main(init: std.process.Init) anyerror!void {
         .posts = post_list,
         .last_build_date = post_list[0].date,
     });
-    try swig.render(build_dir, "index.html", "home.html", .{ .posts = post_list });
+    try swig.render(build_dir, "index.html", "home.html", .{
+        .posts = post_list,
+        .flstudio_songs = flstudio_songs,
+        .deluge_songs = deluge_songs,
+    });
     try swig.render(build_dir, "donate/index.html", "donate.html", .{});
 
     const build_post_dir = try build_post_dir_task.await(io);
